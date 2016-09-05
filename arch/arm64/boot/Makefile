@@ -25,6 +25,7 @@ DTB_OBJS := $(addprefix $(obj)/dts/,$(DTB_LIST))
 else
 DTB_OBJS := $(shell find $(obj)/dts/ -name \*.dtb)
 endif
+DTB_OBJS := $(addprefix arch/arm/boot/dts/,$(DTB_LIST))
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)

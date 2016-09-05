@@ -1,3 +1,16 @@
+dtb-$(CONFIG_ARCH_MSM8994) += msm8994-v1-mtp_14049_HW_14.dtb \
+	msm8994-v2.0-mtp_14049_HW_14.dtb \
+	msm8994-v2.1-mtp_14049_HW_14.dtb \
+	msm8994-v1-mtp_14049_HW_13.dtb \
+	msm8994-v2.0-mtp_14049_HW_13.dtb \
+	msm8994-v2.1-mtp_14049_HW_13.dtb \
+	msm8994-v1-mtp_14049_HW_12.dtb \
+	msm8994-v2.0-mtp_14049_HW_12.dtb \
+	msm8994-v2.1-mtp_14049_HW_12.dtb \
+	msm8994-v1-mtp_14049_HW_11.dtb \
+	msm8994-v2.0-mtp_14049_HW_11.dtb \
+	msm8994-v2.1-mtp_14049_HW_11.dtb
+
 dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v3-pmi8996-mtp_15801.dtb \
     msm8996pro-pmi8996-mtp_15811.dtb
 
@@ -19,7 +32,6 @@ dtb-$(CONFIG_ARCH_MDM9640) += mdm9640-sim.dtb \
 	mdm9640-v1-pmk8001-mtp.dtb \
 	mdm9640-v2-mtp.dtb \
 	mdm9640-v2-pmk8001-mtp.dtb \
-
 
 dtb-$(CONFIG_ARCH_MDMCALIFORNIUM) += mdmcalifornium-sim.dtb \
 	mdmcalifornium-rumi.dtb \
