@@ -92,6 +92,30 @@ static const char *cpu_name;
 static const char *machine_name;
 phys_addr_t __fdt_pointer __initdata;
 
+#define MAX_ITEM 5
+#define MAX_LENGTH 32
+enum
+{
+	serialno = 0,
+	hw_version,
+	rf_version,
+	ddr_manufacture_info,
+	pcba_number
+};
+char oem_serialno[16];
+char oem_hw_version[3];
+char oem_rf_version[3];
+char oem_ddr_manufacture_info[16];
+char oem_pcba_number[30];
+const char cmdline_info[MAX_ITEM][MAX_LENGTH] =
+{
+	"androidboot.serialno=",
+	"androidboot.hw_version=",
+	"androidboot.rf_version=",
+	"ddr_manufacture_info=",
+	"androidboot.pcba_number=",
+};
+
 /*
  * Standard memory resources
  */
@@ -389,6 +413,34 @@ static void __init request_standard_resources(void)
 	}
 }
 
+static int __init device_info_init(void)
+{
+	int i, j;
+	char *substr, *target_str;
+	for(i=0; i<MAX_ITEM; i++)
+	{
+		substr = strstr(boot_command_line, cmdline_info[i]);
+		if(substr != NULL)
+			substr += strlen(cmdline_info[i]);
+		else
+			continue;
+		if(i == serialno)
+			target_str = oem_serialno;
+		else if(i == hw_version)
+			target_str = oem_hw_version;
+		else if(i == rf_version)
+			target_str = oem_rf_version;
+		else if(i == ddr_manufacture_info)
+			target_str = oem_ddr_manufacture_info;
+		else if(i == pcba_number)
+			target_str = oem_pcba_number;
+		for(j=0; substr[j] != ' '; j++)
+			target_str[j] = substr[j];
+		target_str[j] = '\0';
+	}
+	return 1;
+}
+
 u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
 void __init __weak init_random_pool(void) { }
@@ -443,6 +495,7 @@ void __init setup_arch(char **cmdline_p)
 #endif
 #endif
 	init_random_pool();
+	device_info_init();
 }
 
 static int __init arm64_device_init(void)
@@ -558,17 +611,6 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "vfpv4 idiva idivt ");
 	}
 #endif
-        //shankai, 2016/1/9 , provide cpuinfo ,fixed the bug root master apk can
-       // not run .
-       #ifdef VENDOR_EDIT
-	if (!arch_read_hardware_id)
-	seq_printf(m, "Hardware\t: %s\n", machine_name);
-	else
-	seq_printf(m, "Hardware\t: %s\n", arch_read_hardware_id());
-
-	seq_printf(m, "Processor\t: %s rev %d (%s)\n",
-	cpu_name, read_cpuid_id() & 15, ELF_PLATFORM);
-       #endif
 
 	if (!arch_read_hardware_id)
 		seq_printf(m, "Hardware\t: %s\n", machine_name);
