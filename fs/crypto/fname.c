@@ -462,3 +462,4 @@ void fscrypt_free_filename(struct fscrypt_name *fname)
 	fname->disk_name.name = NULL;
 }
 EXPORT_SYMBOL(fscrypt_free_filename);
+

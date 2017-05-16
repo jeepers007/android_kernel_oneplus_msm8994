@@ -44,13 +44,9 @@ module_param(record_size, ulong, 0400);
 MODULE_PARM_DESC(record_size,
 		"size of each dump done on oops/panic");
 
-#ifdef VENDOR_EDIT
 static ulong ramoops_console_size = 256*1024UL;
 phys_addr_t ram_console_address_start;
 ssize_t ram_console_address_size;
-#else
-static ulong ramoops_console_size = MIN_MEM_SIZE;
-#endif /* VENDOR_EDIT */
 
 module_param_named(console_size, ramoops_console_size, ulong, 0400);
 MODULE_PARM_DESC(console_size, "size of kernel console log");
@@ -526,10 +522,8 @@ static int ramoops_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_init_cprz;
 
-#ifdef VENDOR_EDIT
 	ram_console_address_start = cxt->cprz->paddr;
 	ram_console_address_size  = cxt->console_size;
-#endif /*VENDOR_EDIT*/
 
 	err = ramoops_init_prz(dev, cxt, &cxt->fprz, &paddr, cxt->ftrace_size,
 			       LINUX_VERSION_CODE);

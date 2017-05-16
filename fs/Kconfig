@@ -69,6 +69,7 @@ source "fs/notify/Kconfig"
 source "fs/quota/Kconfig"
 
 source "fs/autofs4/Kconfig"
+
 source "fs/fuse/Kconfig"
 
 config GENERIC_ACL
@@ -96,10 +97,7 @@ menu "DOS/FAT/NT Filesystems"
 
 source "fs/fat/Kconfig"
 source "fs/ntfs/Kconfig"
-
-#ifdef VENDOR_EDIT
 source "fs/exfat/Kconfig"
-#endif
 
 endmenu
 endif # BLOCK
