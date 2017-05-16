@@ -19,11 +19,8 @@
 #include <linux/aio.h>
 #include <linux/falloc.h>
 
-#ifdef VENDOR_EDIT
-//liochen@filesystems, 2016/01/04, add for reserved memory
 #include <linux/statfs.h>
 #include <linux/namei.h>
-#endif
 
 static const struct file_operations fuse_direct_io_file_operations;
 
@@ -1249,8 +1246,6 @@ static ssize_t fuse_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
 	struct iov_iter i;
 	loff_t endbyte = 0;
 
-#ifdef VENDOR_EDIT
-//liochen@filesystems, 2016/01/04, add for reserved memory
 	struct kstatfs statfs;
 	u64 avail;
 	size_t size;
@@ -1307,7 +1302,6 @@ static ssize_t fuse_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
 			return -ENOSPC;
 		}
 	}
-#endif
 
 	if (get_fuse_conn(inode)->writeback_cache) {
 		/* Update size (EOF optimization) and mode (SUID clearing) */
@@ -2922,3 +2916,4 @@ void fuse_init_file_inode(struct inode *inode)
 	inode->i_fop = &fuse_file_operations;
 	inode->i_data.a_ops = &fuse_file_aops;
 }
+
