@@ -73,12 +73,10 @@ struct tfa98xx {
 	int has_drc;
 	int rate;
 	struct work_struct stop_work;
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-11,change for wave profile */
-    int WaveEnable;
-    int profileChange;
-    int i2sOn;
-#endif
+
+	int WaveEnable;
+	int profileChange;
+	int i2sOn;
 	struct tfaprofile *profiles;
 	struct tfa98xx_firmware fw;
 

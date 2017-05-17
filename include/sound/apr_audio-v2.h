@@ -346,9 +346,6 @@ struct adm_cmd_set_pp_params_inband_v5 {
 	struct adm_param_data_v5        params;
 } __packed;
 
-#ifdef VENDOR_EDIT
-//#lifei@OnePlus.MultiMediaService, 2015/09/25 add set/get dsp interface
-/* Defined specifically for in-band use, includes params */
 struct adm_cmd_set_pp_params_dirac_v5 {
 	struct apr_hdr hdr;
 	/* LSW of parameter data payload address.*/
@@ -368,7 +365,6 @@ struct adm_cmd_set_pp_params_dirac_v5 {
 
 	u32     enable;
 } __packed;
-#endif/*VENDOR_EDIT*/
 
 /* Returns the status and COPP ID to an #ADM_CMD_DEVICE_OPEN_V5 command.
  */
@@ -2530,10 +2526,7 @@ struct afe_lpass_core_shared_clk_config_command {
 #define VPM_TX_QMIC_FLUENCE_COPP_TOPOLOGY		0x00010F75
 #define VPM_TX_DM_RFECNS_COPP_TOPOLOGY			0x00010F86
 #define ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DTS_HPX		0x10015002
-#ifdef VENDOR_EDIT
-//#lifei@OnePlus.MultiMediaService, 2016/01/11 add set/get dsp interface
 #define ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DIRAC		0x10012D00
-#endif/*VENDOR_EDIT*/
 
 /* Memory map regions command payload used by the
  * #ASM_CMD_SHARED_MEM_MAP_REGIONS ,#ADM_CMD_SHARED_MEM_MAP_REGIONS
@@ -7517,11 +7510,7 @@ struct afe_param_id_clip_bank_sel {
 #define Q6AFE_LPASS_OSR_CLK_DISABLE		     0x0
 
 /* Supported Bit clock values */
-#ifdef VENDOR_EDIT
-/* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-03-11,add for enable i2s */
 #define Q6AFE_LPASS_IBIT_CLK_12_P288_MHZ	0xBB8000
-/* add end by zhiguang.su@MultiMedia.AudioDrv on 2015-03-11,add for enable i2s */
-#endif
 #define Q6AFE_LPASS_IBIT_CLK_8_P192_MHZ		0x7D0000
 #define Q6AFE_LPASS_IBIT_CLK_6_P144_MHZ		0x5DC000
 #define Q6AFE_LPASS_IBIT_CLK_4_P096_MHZ		0x3E8000

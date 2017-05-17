@@ -54,8 +54,6 @@ enum pon_restart_reason {
 	PON_RESTART_REASON_RTC		= 0x03,
 };
 
-#ifdef VENDOR_EDIT
-/* add by yangrujin@bsp 2015/10/27, define reboot mode magic*/
 #define FASTBOOT_MODE          0x77665500
 #define RECOVERY_MODE          0x77665502
 #define ALARM_BOOT             0x77665503
@@ -71,7 +69,6 @@ enum pon_restart_reason {
 #define MODEM_MODE             0x7766550b
 #define NORMAL_MODE            0xFEFEFEFE
 #define INVALID_MODE           0xFFFFFFFF
-#endif
 
 #ifdef CONFIG_QPNP_POWER_ON
 int qpnp_pon_system_pwr_off(enum pon_power_off_type type);

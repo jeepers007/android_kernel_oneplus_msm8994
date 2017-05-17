@@ -20,8 +20,6 @@
 void msm_set_restart_mode(int mode);
 extern int pmic_reset_irq;
 
-#ifdef VENDOR_EDIT
-
 #define uint32 uint32_t
 #define uint64 uint64_t
 
@@ -71,7 +69,6 @@ struct boot_shared_imem_cookie_type
 
   /* Please add new cookie here, do NOT modify or rearrange the existing cookies*/
 };
-#endif /*VENDOR_EDIT*/
 
 #endif
 

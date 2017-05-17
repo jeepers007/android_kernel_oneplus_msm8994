@@ -396,7 +396,6 @@ TRACE_EVENT(core_ctl_set_busy,
 		  __entry->is_busy)
 );
 
-#ifdef VENDOR_EDIT
 TRACE_EVENT(hcube_eval_need,
 
 	TP_PROTO(unsigned int cpu, unsigned int old_need,
@@ -439,7 +438,6 @@ TRACE_EVENT(hcube_set_busy,
 		  __entry->cpu, __entry->busy, __entry->old_is_busy,
 		  __entry->is_busy)
 );
-#endif
 
 DECLARE_EVENT_CLASS(kpm_module2,
 
