@@ -1748,9 +1748,7 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	struct mdss_dsi_ctrl_pdata *mctrl = NULL;
 	int ignored = 0;	/* overflow ignored */
 
-        #ifdef VENDOR_EDIT /*Qualcomm add patch for iommu error issue in 2015-09-02*/
         int iommu_attached = 0;
-        #endif
 
 	bp = tp->data;
 
@@ -1770,9 +1768,7 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 		}
 		ctrl->dmap_iommu_map = true;
 
-        #ifdef VENDOR_EDIT /*Qualcomm add patch for iommu error issue in 2015-09-02*/
            iommu_attached = 1;
-        #endif
 
 	} else {
 		ctrl->dma_addr = tp->dmap;
@@ -1851,10 +1847,8 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 			/* restore overflow isr */
 			mdss_dsi_set_reg(mctrl, 0x10c, 0x0f0000, 0);
 		}
-        #ifdef VENDOR_EDIT /*Qualcomm add patch for iommu error issue in 2015-09-02*/
           // if (mctrl->dmap_iommu_map) 
              if (ctrl->dmap_iommu_map && (iommu_attached == 1))
-        #endif 
 		 {
 			msm_iommu_unmap_contig_buffer(mctrl->dma_addr,
 				mctrl->mdss_util->get_iommu_domain(domain),
@@ -2061,57 +2055,6 @@ void mdss_dsi_cmd_mdp_start(struct mdss_dsi_ctrl_pdata *ctrl)
 	MDSS_XLOG(ctrl->ndx, ctrl->mdp_busy, current->pid);
 	spin_unlock_irqrestore(&ctrl->mdp_lock, flag);
 }
-
-#if 0
-#ifdef VENDOR_EDIT  //qualcomm modify for lcd crash 2015-04-18
-
-//qualcomm provide patch   2015-04-18
-static int mdss_dsi_mdp_busy_tout_check(struct mdss_dsi_ctrl_pdata *ctrl)
-{
-	unsigned long flag;
-	u32 isr;
-	bool stop_hs_clk = false;
-	int tout = 1;
-
-	/*
-	 * two possible scenario:
-	 * 1) DSI_INTR_CMD_MDP_DONE set but isr not fired
-	 * 2) DSI_INTR_CMD_MDP_DONE set and cleared (isr fired)
-	 * but event_thread not wakeup
-	 */
-	mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 1);
-	spin_lock_irqsave(&ctrl->mdp_lock, flag);
-
-	isr = MIPI_INP(ctrl->ctrl_base + 0x0110);
-	if (isr & DSI_INTR_CMD_MDP_DONE) {
-		pr_warn("INTR_CMD_MDP_DONE set but isr not fired\n");
-		isr &= DSI_INTR_MASK_ALL;
-		isr |= DSI_INTR_CMD_MDP_DONE; /* clear this isr only */
-		MIPI_OUTP(ctrl->ctrl_base + 0x0110, isr);
-		mdss_dsi_disable_irq_nosync(ctrl, DSI_MDP_TERM);
-		ctrl->mdp_busy = false;
-		if (ctrl->cmd_clk_ln_recovery_en &&
-			ctrl->panel_mode == DSI_CMD_MODE) {
-			/* has hs_lane_recovery do the work */
-			stop_hs_clk = true;
-		}
-		tout = 0;	/* recovered */
-        } 
-
-        spin_unlock_irqrestore(&ctrl->mdp_lock, flag);
-
-        if (stop_hs_clk)
-            mdss_dsi_stop_hs_clk_lane(ctrl);
-
-        complete_all(&ctrl->mdp_comp);
-
-        mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 0);
-
-        return tout;
-}
-#endif
-#endif
-//qualcomm modify for lcd crash 2015-04-22
 
 static int mdss_dsi_mdp_busy_tout_check(struct mdss_dsi_ctrl_pdata *ctrl)
  {
@@ -2403,11 +2346,7 @@ static int dsi_event_thread(void *data)
 	u32 arg;
 	int ret;
 
-	#ifndef VENDOR_EDIT  //qualcomm modify for lcd crash 2015-04-18
-	param.sched_priority = 16;
-	#else
 	param.sched_priority = 17;
-	#endif
 
 	ret = sched_setscheduler_nocheck(current, SCHED_FIFO, &param);
 	if (ret)

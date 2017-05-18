@@ -406,36 +406,20 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 
 	if (dotg->charger->charging_disabled)
 		return 0;
-#ifndef VENDOR_EDIT
-	if (dotg->charger->chg_type != DWC3_INVALID_CHARGER) {
-		dev_dbg(phy->dev,
-			"SKIP setting power supply type again,chg_type = %d\n",
-			dotg->charger->chg_type);
-		goto skip_psy_type;
-	}
-#endif
+
 	if (dotg->charger->chg_type == DWC3_SDP_CHARGER)
 		power_supply_type = POWER_SUPPLY_TYPE_USB;
 	else if (dotg->charger->chg_type == DWC3_CDP_CHARGER)
-#ifdef VENDOR_EDIT
 		power_supply_type = POWER_SUPPLY_TYPE_USB;
 	else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||
 			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER ||
 	        dotg->charger->chg_type == DWC3_FLOATED_CHARGER)
 		power_supply_type = POWER_SUPPLY_TYPE_USB_DCP;
-#else
-        power_supply_type = POWER_SUPPLY_TYPE_USB_CDP;
-else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||
-			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER)
-		power_supply_type = POWER_SUPPLY_TYPE_USB_DCP;
-#endif
 	else
 		power_supply_type = POWER_SUPPLY_TYPE_UNKNOWN;
 
 	power_supply_set_supply_type(dotg->psy, power_supply_type);
-#ifndef  VENDOR_EDIT
-skip_psy_type:
-#endif
+
 	if (dotg->charger->chg_type == DWC3_CDP_CHARGER)
 		mA = DWC3_IDEV_CHG_MAX;
 
@@ -572,11 +556,6 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 					dwc3_otg_set_power(phy,
 						dcp_max_current);
 					dbg_event(0xFF, "PROPCHG put", 0);
-			#ifdef VENDOR_EDIT //yangfangbiao@oneplus.cn, 20150613
-			//do nothing ,do not  need to let system suspend
-			#else
-					pm_runtime_put_sync(phy->dev);
-			#endif
 					break;
 				case DWC3_CDP_CHARGER:
 					dwc3_otg_set_power(phy,
@@ -587,9 +566,7 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 					work = 1;
 					break;
 				case DWC3_SDP_CHARGER:
-#ifdef VENDOR_EDIT
 					dwc3_otg_set_power(phy, DWC3_SDP_CHG_MAX);
-#endif
 					dwc3_otg_start_peripheral(&dotg->otg,
 									1);
 					phy->state = OTG_STATE_B_PERIPHERAL;
@@ -610,11 +587,7 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 					 */
 					if (dotg->charger_retry_count ==
 						max_chgr_retry_count) {
-					#ifdef VENDOR_EDIT	//yangfb add to set charge current to  FLOATED_CHARGER ,20150805
 						dwc3_otg_set_power(phy, DWC3_IDEV_CHG_MAX);
-					#else
-						dwc3_otg_set_power(phy, 0);
-					#endif
 						dbg_event(0xFF, "FLCHG put", 0);
 						//pm_runtime_put_sync(phy->dev); ////do nothing ,do not  need to let system suspend
 						break;

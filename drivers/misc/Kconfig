@@ -617,8 +617,7 @@ config TI_DRV2667
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ti_drv2667.
-#ifdef VENDOR_EDIT
-#shankai@bsp, 2015/2/2, Add for :drv2605 kernel support 
+
 config TI_DRV2605
 	tristate "TI's DRV2605 haptic controller support"
 	depends on I2C
@@ -629,7 +628,7 @@ config TI_DRV2605
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ti_drv2605.
-#endif VENDOR_EDIT
+
 config QCOM_LIQUID_DOCK
 	tristate "QTI LiQUID Docking Station USB/Ethernet support"
 	depends on OF_GPIO

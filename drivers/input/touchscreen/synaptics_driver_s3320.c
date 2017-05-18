@@ -1,6 +1,6 @@
 /************************************************************************************
  ** File: - /android/kernel/drivers/input/touchscreen/synaptic_s3320.c
- ** VENDOR_EDIT
+ ** 
  ** Copyright (C), 2008-2012, OEM Mobile Comm Corp., Ltd
  **
  ** Description:
@@ -330,8 +330,6 @@ static const struct dev_pm_ops synaptic_pm_ops = {
 #endif
 };
 
-//add by jiachenghui for boot time optimize 2015-5-13
-#ifdef VENDOR_EDIT
 static int probe_ret;
 struct synaptics_optimize_data{
 	struct delayed_work work;
@@ -384,17 +382,9 @@ static int oem_synaptics_ts_probe(struct i2c_client *client, const struct i2c_de
 	//spin_unlock_irqrestore(&oem_lock, flags);
 	return probe_ret;
 }
-#endif /*VENDOR_EDIT*/
-//end add by jiachenghui for boot time optimize 2015-5-13
 
 static struct i2c_driver tpd_i2c_driver = {
-//add by jiachenghui for boot time optimize 2015-5-13
-#ifdef VENDOR_EDIT
 	.probe		= oem_synaptics_ts_probe,
-#else
-//end add by jiachenghui for boot time optimize 2015-5-13
-	.probe		= synaptics_ts_probe,
-#endif /*VENDOR_EDIT*///add by jiachenghui for boot time optimize 2015-5-13
 	.remove		= synaptics_ts_remove,
 	.id_table	= synaptics_ts_id,
 	.driver = {
@@ -1042,8 +1032,6 @@ static int synaptics_rmi4_i2c_write_word(struct i2c_client* client,
 	return retval;
 }
 
-//chenggang.li@BSP.TP modified for oem 2014-08-05 gesture_judge
-/***************start****************/
 #ifdef SUPPORT_GESTURE
 static void synaptics_get_coordinate_point(struct synaptics_ts_data *ts)
 {
@@ -1125,7 +1113,6 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 	//detect the gesture mode
 	switch (gesture_sign) {
 		case DTAP_DETECT:
-			//#ifdef VENDOR_EDIT, ruanbanmao@bsp 2015-05-06, begin.
 			    gesture = DouTap;
 			break;
 		case SWIPE_DETECT:
@@ -1150,7 +1137,6 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 			gesture = (gesture_buffer[2] == 0x77) ? Wgestrue :
 				(gesture_buffer[2] == 0x6d) ? Mgestrue :
 				UnkownGestrue;
-            //#endif, ruanbanmao@bsp 2015-05-06, end.
 	}
 
 	synaptics_get_coordinate_point(ts);
@@ -1175,7 +1161,7 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 	}
 }
 #endif
-/***************end****************/
+
 static char prlog_count = 0;
 
 void int_touch(void)
@@ -3066,18 +3052,14 @@ static int synaptics_ts_probe(struct i2c_client *client, const struct i2c_device
 	ret = tpd_power(ts, 1);
 	if( ret < 0 )
 		TPD_ERR("regulator_enable is called\n");
-
-#ifdef VENDOR_EDIT //WayneChang, 2016/1/5, set 80~100ms delay for device getting ready after power on
-    msleep(100);
-#endif
-
+    	msleep(100);
 	mutex_init(&ts->mutex);
-    atomic_set(&ts->irq_enable,0);
+    	atomic_set(&ts->irq_enable,0);
 	init_synaptics_proc();
 
 	ts->is_suspended = 0;
 	atomic_set(&ts->is_stop,0);
-    spin_lock_init(&ts->lock);
+    	spin_lock_init(&ts->lock);
 	/*****power_end*********/
 	if( !i2c_check_functionality(client->adapter, I2C_FUNC_I2C) ){
 		TPD_ERR("%s: need I2C_FUNC_I2C\n", __func__);
@@ -3523,3 +3505,4 @@ module_exit(tpd_driver_exit);
 
 MODULE_DESCRIPTION("Synaptics S3203 Touchscreen Driver");
 MODULE_LICENSE("GPL");
+

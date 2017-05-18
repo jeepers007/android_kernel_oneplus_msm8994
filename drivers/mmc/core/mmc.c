@@ -126,8 +126,6 @@ static int mmc_decode_cid(struct mmc_card *card)
 			mmc_hostname(card->host), card->csd.mmca_vsn);
 		return -EINVAL;
 	}
-#ifdef VENDOR_EDIT
-        //liochen,2015/12/09,Push emmc card information
         if(!strncmp(mmc_hostname(card->host),"mmc0",4)){
                 switch(card->cid.manfid){
                         case 0x11:
@@ -145,9 +143,6 @@ static int mmc_decode_cid(struct mmc_card *card)
                 }
                 push_component_info(EMMC, manufactureid, card->cid.prod_name);
         }
-#endif /*VENDOR_EDIT*/
-
-
 	return 0;
 }
 

@@ -32,12 +32,6 @@
 
 #define XO_CLK_RATE	19200000
 
-#ifdef VENDOR_EDIT/*guozhiming@oem_display add for the RF WLAN mode using*/
-//#include <linux/boot_mode.h>
-
-//static int rf_wlan_test_mode=0;
-
-#endif
 static struct dsi_drv_cm_data shared_ctrl_data;
 
 static int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
@@ -159,9 +153,8 @@ static int mdss_dsi_regulator_init(struct platform_device *pdev)
 
 	return rc;
 }
-#ifdef VENDOR_EDIT
+
 extern int vendor_lcd_power_on(struct mdss_panel_data *pdata, int enable);
-#endif
 
 static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 {
@@ -180,7 +173,6 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-#ifdef VENDOR_EDIT
     if (ctrl_pdata->panel_bias_vreg) {
 		pr_debug("%s: Disabling panel bias vreg. ndx = %d\n",
 		       __func__, ctrl_pdata->ndx);
@@ -189,15 +181,11 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 		/* Add delay recommended by panel specs */
 		udelay(5000);
 	}
-#endif
-
-#ifdef VENDOR_EDIT
 
 	if (ctrl_pdata->use_external_ic_power){
 		
 			vendor_lcd_power_on(pdata, 0);
 		}
-#endif
 
 	ret = mdss_dsi_panel_reset(pdata, 0);
 	if (ret) {
@@ -207,16 +195,7 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 
 	if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 		pr_debug("reset disable: pinctrl not enabled\n");
-#ifndef VENDOR_EDIT
-	if (ctrl_pdata->panel_bias_vreg) {
-		pr_debug("%s: Disabling panel bias vreg. ndx = %d\n",
-		       __func__, ctrl_pdata->ndx);
-		if (mdss_dsi_labibb_vreg_ctrl(ctrl_pdata, false))
-			pr_err("Unable to disable bias vreg\n");
-		/* Add delay recommended by panel specs */
-		udelay(2000);
-	}
-#endif
+
 	for (i = DSI_MAX_PM - 1; i >= 0; i--) {
 		/*
 		 * Core power module will be disabled when the
@@ -277,7 +256,6 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 
 	i--;
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-07-04 for EVT2 DVT PVT
 	if (!pdata->panel_info.cont_splash_enabled) 
 		{
 	if (ctrl_pdata->use_external_ic_power){
@@ -285,7 +263,6 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 			vendor_lcd_power_on(pdata, 1);
 		}
 		}
-#endif
 
 	/*
 	 * If continuous splash screen feature is enabled, then we need to
@@ -773,14 +750,10 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		goto end;
 	}
 
-	#ifndef VENDOR_EDIT /*guozhiming add for RF and WLAN mode */
-        if((get_boot_mode() !=MSM_BOOT_MODE__RF)&&(get_boot_mode() !=MSM_BOOT_MODE__WLAN))
-		ret = mdss_dsi_panel_power_ctrl(pdata, MDSS_PANEL_POWER_ON);
-	#else
 	{
 		ret = mdss_dsi_panel_power_ctrl(pdata, MDSS_PANEL_POWER_ON);
 	}
-	#endif
+
 	if (ret) {
 		pr_err("%s:Panel power on failed. rc=%d\n", __func__, ret);
 		return ret;
@@ -823,7 +796,6 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	if (mipi->lp11_init) {
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
 			pr_debug("reset enable: pinctrl not enabled\n");
-		#ifdef VENDOR_EDIT
 		if (syna_use_gesture)
 			msleep(25);
 		else
@@ -831,9 +803,6 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		mdss_dsi_panel_reset(pdata, 1);
 		if (syna_use_gesture)
 			msleep(30);
-		#else
-		mdss_dsi_panel_reset(pdata, 1);
-		#endif
 	}
 
 
@@ -1854,10 +1823,9 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 	ctrl_pdata->panel_bias_vreg = of_property_read_bool(
 			pdev->dev.of_node, "qcom,dsi-panel-bias-vreg");
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28 -04-23 new modify
 	ctrl_pdata->use_external_ic_power = of_property_read_bool(
 			pdev->dev.of_node, "qcom,use_external_ic_power");
-	#endif
+
 	/* DSI panels can be different between controllers */
 	rc = mdss_dsi_get_panel_cfg(panel_cfg, ctrl_pdata);
 	if (!rc)
@@ -2182,7 +2150,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	if (!gpio_is_valid(ctrl_pdata->disp_te_gpio))
 		pr_err("%s:%d, TE gpio not specified\n",
 						__func__, __LINE__);
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28 -04-23 new modify
 	ctrl_pdata->lcd_esd_te_check = of_get_named_gpio(ctrl_pdev->dev.of_node,
 			"qcom,platform-esd-te-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->lcd_esd_te_check))
@@ -2206,7 +2173,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	if (!gpio_is_valid(ctrl_pdata->lcd_tps65132_en_n))
 		pr_err("%s:%d, lcd -5v gpio not specified\n",
 				__func__, __LINE__);
-#endif
 	ctrl_pdata->bklt_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-bklight-en-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->bklt_en_gpio))

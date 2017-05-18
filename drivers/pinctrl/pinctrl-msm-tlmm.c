@@ -961,8 +961,6 @@ static void msm_tlmm_gp_irq_resume(void)
 	for_each_set_bit(i, ic->wake_irqs, num_irqs)
 		msm_tlmm_set_intr_cfg_enable(ic, i, 0);
 
-#ifdef VENDOR_EDIT
-/* Jialong.Wu,add 2015/5/9  Add for wakeup analysis */
     for_each_set_bit(i, ic->wake_irqs, ic->num_irqs){
 	if (msm_tlmm_get_intr_status(ic, i))
 	   {
@@ -971,11 +969,11 @@ static void msm_tlmm_gp_irq_resume(void)
 	      (gpio_to_irq((unsigned int)(i+878))), (unsigned int)i);
 		  if((gpio_to_irq((unsigned int)(i+878))) == 604)//spi12.0
 		  {
-			  sched_set_boost(1);//wujialong 20160119,enable sched_boost when fingerprint wakeup
+			  sched_set_boost(1);
 		  }
 	   }
     }
-#endif /* VENDOR_EDIT */
+
 	for_each_set_bit(i, ic->enabled_irqs, num_irqs)
 		msm_tlmm_set_intr_cfg_enable(ic, i, 1);
 	mb();
@@ -1111,7 +1109,6 @@ static struct msm_pintype_info tlmm_pininfo[] = {
 	}
 };
 
-#ifdef VENDOR_EDIT
 static uint need_dump_pinctrl;
 module_param(need_dump_pinctrl, uint, 0644);
 MODULE_PARM_DESC(need_dump_pinctrl, "need_dump_pinctrl");
@@ -1193,7 +1190,6 @@ void pinctrl_suspend_dump(void)
 	}
 }
 EXPORT_SYMBOL(pinctrl_suspend_dump);
-#endif /* VENDOR_EDIT */
 
 #define DECLARE_PINTYPE_DATA_GP(name, offset, regsize)	\
 static const struct msm_pintype_data name = {		\

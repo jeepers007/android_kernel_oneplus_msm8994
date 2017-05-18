@@ -1351,9 +1351,6 @@ static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
 	return 8;
 }
 
-/*Anderson-01+[*/
- //add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-#ifdef VENDOR_EDIT
 static void _lba_to_msf(u8 *buf, int lba)
 {
 	lba += 150;
@@ -1589,9 +1586,6 @@ static int do_read_cd(struct fsg_common *common)
 
 	return -EIO;		/* No default reply */
 }
-#endif
-//end add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-/*Anderson-01+]*/
 
 static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 {
@@ -1599,13 +1593,8 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 	int		msf = common->cmnd[1] & 0x02;
 	int		start_track = common->cmnd[6];
 	u8		*buf = (u8 *)bh->buf;
-/*Anderson-01+[*/
- //add by jiachenghui for cdrom suport MAC OSX,2015-06-30
- #ifdef VENDOR_EDIT
+
 	int format = (common->cmnd[9] & 0xC0) >> 6;
-#endif
-//end add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-/*Anderson-01+]*/
 
 	if ((common->cmnd[1] & ~0x02) != 0 ||	/* Mask away MSF */
 			start_track > 1) {
@@ -1613,14 +1602,8 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 		return -EINVAL;
 	}
 
-/*Anderson-01+[*/
- //add by jiachenghui for cdrom suport MAC OSX,2015-06-30
- #ifdef VENDOR_EDIT
 	if (format == 2)
 		return _read_toc_raw(common, bh);
-#endif
-//end add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-/*Anderson-01+]*/
 
 	memset(buf, 0, 20);
 	buf[1] = (20-2);		/* TOC data length */
@@ -2395,26 +2378,13 @@ static int do_scsi_command(struct fsg_common *common)
 			goto unknown_cmnd;
 		common->data_size_from_cmnd =
 			get_unaligned_be16(&common->cmnd[7]);
-/*Anderson-01*[*/
- //add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-#ifdef VENDOR_EDIT
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
 				      (0xf<<6) | (1<<1), 1,
 				      "READ TOC");
-#else /* original */
- //end add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-		reply = check_command(common, 10, DATA_DIR_TO_HOST,
-				      (7<<6) | (1<<1), 1,
-				      "READ TOC");
-#endif//add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-/*Anderson-01*]*/
 		if (reply == 0)
 			reply = do_read_toc(common, bh);
 		break;
 
-/*Anderson-01*[*/
-//add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-#ifdef VENDOR_EDIT
 	case READ_CD:
 		common->data_size_from_cmnd = ((common->cmnd[6] << 16)
 						| (common->cmnd[7] << 8)
@@ -2425,9 +2395,6 @@ static int do_scsi_command(struct fsg_common *common)
 		if (reply == 0)
 			reply = do_read_cd(common);
 		break;
-#endif
-//end add by jiachenghui for cdrom suport MAC OSX,2015-06-30
-/*Anderson-01*]*/
 
 	case READ_FORMAT_CAPACITIES:
 		common->data_size_from_cmnd =
@@ -3294,11 +3261,7 @@ buffhds_first_it:
 				     : "File-CD Gadget"),
 		 i);
 
-//add by jiachenghui for cdrom inquiry strings  customized ,2015-11-11
-#ifdef VENDOR_EDIT
 	snprintf(common->inquiry_string, sizeof common->inquiry_string, "%s",  "OnePlus Device Driver");
-#endif
-//add by jiachenghui for cdrom inquiry strings  customized ,2015-11-11
 
 	/*
 	 * Some peripheral controllers are known not to be able to

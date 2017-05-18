@@ -4035,12 +4035,10 @@ static int qpnp_leds_probe(struct spmi_device *spmi)
 		}
 
 		if (led->id == QPNP_ID_LED_MPP) {
-                    #ifdef VENDOR_EDIT /* LiuPing@Phone.BSP.Sensor, 2014/12/23, add for turn off the button-backlight when boot. */
                     if (!led->default_on &&  strcmp(led->cdev.name, "button-backlight") == 0)
                     {
                         __qpnp_led_work(led, led->cdev.brightness);
                     }
-                    #endif /*VENDOR_EDIT*/
 			if (!led->mpp_cfg->pwm_cfg)
 				break;
 			if (led->mpp_cfg->pwm_cfg->mode == PWM_MODE) {

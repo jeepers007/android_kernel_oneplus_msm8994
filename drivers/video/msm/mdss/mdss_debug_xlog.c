@@ -450,14 +450,6 @@ static void mdss_xlog_dump_array(struct mdss_debug_base *blk_arr[],
 		mdss_dump_debug_bus(mdss_dbg_xlog.enable_dbgbus_dump,
 			&mdss_dbg_xlog.dbgbus_dump);
 
-#ifndef VENDOR_EDIT  //guozhiming add for test
-
-	if (dead && mdss_dbg_xlog.panic_on_err)
-		{	
-			panic(name);
-		}
-#else
-
 	if (dead && mdss_dbg_xlog.panic_on_err)
 		{
 		char i;
@@ -465,7 +457,6 @@ static void mdss_xlog_dump_array(struct mdss_debug_base *blk_arr[],
 		printk(KERN_ERR"check find the display error\n");
 		//panic(name);
 		}
-#endif
 }
 
 static void xlog_debug_work(struct work_struct *work)

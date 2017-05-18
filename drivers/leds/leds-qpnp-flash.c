@@ -22,15 +22,12 @@
 #include <linux/delay.h>
 #include <linux/of.h>
 #include <linux/regulator/consumer.h>
+#include <linux/syscalls.h>
 #include <linux/workqueue.h>
 #include <linux/power_supply.h>
 #include "leds.h"
 
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
-#include <linux/syscalls.h>
 #define FLASH_MAIN_CLOSE_BACKLIGHT
-#endif
 #define FLASH_LED_PERIPHERAL_SUBTYPE(base)			(base + 0x05)
 #define FLASH_SAFETY_TIMER(base)				(base + 0x40)
 #define FLASH_MAX_CURRENT(base)					(base + 0x41)
@@ -177,13 +174,10 @@ struct flash_node_data {
 	u8				enable;
 	u8				num_regulators;
 	bool				flash_on;
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 	bool                            backlight_flag;
 	char                            backlight_buf[10];
 	struct delayed_work             backlight_work;
-#endif
 #endif
 };
 
@@ -761,8 +755,7 @@ error_regulator_enable:
 
 	return rc;
 }
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 static int qpnp_flash_led_backlight_set(char *brightness_new)
 {
@@ -817,7 +810,7 @@ static int  qpnp_flash_led_backlight_get(char *brightness_old)
     return 0;
 }
 #endif
-#endif
+
 static void qpnp_flash_led_work(struct work_struct *work)
 {
 	struct flash_node_data *flash_node = container_of(work,
@@ -830,11 +823,9 @@ static void qpnp_flash_led_work(struct work_struct *work)
 	int total_curr_ma = 0;
 	int i;
 	u8 val;
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 	char brightness_new[10]="0";
-#endif
 #endif
 
 	mutex_lock(&led->flash_led_lock);
@@ -1098,8 +1089,6 @@ static void qpnp_flash_led_work(struct work_struct *work)
 					 (u16)max_curr_avail_ma;
 			}
 
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 		if(flash_node->prgm_current>LED_FULL&&!flash_node->backlight_flag&&!flash_node->id){
 			flash_node->backlight_flag = true;
@@ -1114,7 +1103,6 @@ static void qpnp_flash_led_work(struct work_struct *work)
 				goto turn_off;
 			}
 		}
-#endif
 #endif
 
 			val = (u8)(flash_node->prgm_current *
@@ -1301,8 +1289,7 @@ exit_flash_led_work:
 error_enable_gpio:
 	if (flash_node->flash_on && flash_node->num_regulators > 0)
 		flash_regulator_enable(led, flash_node, false);
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 	if(flash_node->backlight_flag&&LED_OFF == brightness&&!flash_node->id){
 		flash_node->backlight_flag = false;
@@ -1323,14 +1310,13 @@ error_enable_gpio:
 		cancel_delayed_work_sync(&flash_node->backlight_work);
 	}
 #endif
-#endif
+
 	flash_node->flash_on = false;
 	mutex_unlock(&led->flash_led_lock);
 
 	return;
 }
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 static void qpnp_flash_led_backlight_work(struct work_struct *work)
 {
@@ -1363,7 +1349,6 @@ static void qpnp_flash_led_backlight_work(struct work_struct *work)
 	mutex_unlock(&led->flash_led_lock);
 	return;
 }
-#endif
 #endif
 
 static void qpnp_flash_led_brightness_set(struct led_classdev *led_cdev,
@@ -1429,15 +1414,14 @@ static void qpnp_flash_led_brightness_set(struct led_classdev *led_cdev,
 	}
 
 	queue_work(led->ordered_workq, &flash_node->work);
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 	if(value>LED_FULL&&!flash_node->id){
 			schedule_delayed_work(&flash_node->backlight_work,
 						msecs_to_jiffies(flash_node->duration+100));
 	}
 #endif
-#endif
+
 	return;
 }
 
@@ -1967,13 +1951,12 @@ static int qpnp_flash_led_probe(struct spmi_device *spmi)
 		led->flash_node[i].spmi_dev = spmi;
 
 		INIT_WORK(&led->flash_node[i].work, qpnp_flash_led_work);
-/*muyuezhong@camera,2015-07-23,add this for close backlight on the flash high*/
-#ifdef VENDOR_EDIT
+
 #ifdef FLASH_MAIN_CLOSE_BACKLIGHT
 		INIT_DELAYED_WORK(&led->flash_node[i].backlight_work, qpnp_flash_led_backlight_work);
 		led->flash_node[i].backlight_flag = false;
 #endif
-#endif
+
 		rc = of_property_read_string(temp, "qcom,led-name",
 						&led->flash_node[i].cdev.name);
 		if (rc < 0) {

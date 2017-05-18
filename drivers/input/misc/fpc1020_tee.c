@@ -63,8 +63,6 @@
 /* Unused key value to avoid interfering with active keys */
 #define KEY_FINGERPRINT 0x2ee
 
-#define ONEPLUS_EDIT  //Onplus modify for msm8996 platform and 15801 HW
-
 static const char * const pctl_names[] = {
 	"fpc1020_spi_active",
 	"fpc1020_reset_reset",
@@ -81,19 +79,13 @@ struct vreg_config {
 	unsigned long vmax;
 	int ua_load;
 };
-#ifndef ONEPLUS_EDIT
-static const struct vreg_config const vreg_conf[] = {
-	{ "vdd_ana", 1800000UL, 1800000UL, 6000, },
-	{ "vcc_spi", 1800000UL, 1800000UL, 10, },
-	{ "vdd_io", 1800000UL, 1800000UL, 6000, },
-};
-#else
+
 static const struct vreg_config const vreg_conf[] = {
 	{ "vdd_ana", 2850000UL, 2850000UL, 6000, },
 	{ "vcc_spi", 1800000UL, 1800000UL, 10, },
 	{ "vdd_io", 1800000UL, 1800000UL, 6000, },
 };
-#endif
+
 struct fpc1020_data {
 	struct device *dev;
 	struct spi_device *spi;
@@ -121,18 +113,18 @@ struct fpc1020_data {
 	struct pinctrl_state   *gpio_state_active;
 	struct pinctrl_state   *gpio_state_suspend;
 
-	#ifdef ONEPLUS_EDIT
-    int EN_VDD_gpio;
-    int id0_gpio;
-    int id1_gpio;
-    int vendor_gpio;
-    int fp2050_gpio;
-    struct input_dev	*input_dev;
-    int screen_state;//1: on 0:off
-	#endif
+	int EN_VDD_gpio;
+	int id0_gpio;
+	int id1_gpio;
+	int vendor_gpio;
+	int fp2050_gpio;
+	struct input_dev	*input_dev;
+	int screen_state;//1: on 0:off
+
 	#if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
-    #endif
+	#endif
+
 	struct work_struct pm_work;
 };
 
@@ -156,67 +148,7 @@ static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 	dev_info(dev, "%s - gpio: %d\n", label, *gpio);
 	return 0;
 }
-#ifndef ONEPLUS_EDIT
-/* -------------------------------------------------------------------- */
-static int fpc1020_pinctrl_init(struct fpc1020_data *fpc1020)
-{
-	int ret = 0;
-	struct device *dev = fpc1020->dev;
 
-	fpc1020->ts_pinctrl = devm_pinctrl_get(dev);
-	if (IS_ERR_OR_NULL(fpc1020->ts_pinctrl)) {
-		dev_err(dev, "Target does not use pinctrl\n");
-		ret = PTR_ERR(fpc1020->ts_pinctrl);
-		goto err;
-	}
-
-	fpc1020->gpio_state_active =
-		pinctrl_lookup_state(fpc1020->ts_pinctrl, "pmx_fp_active");
-	if (IS_ERR_OR_NULL(fpc1020->gpio_state_active)) {
-		dev_err(dev, "Cannot get active pinstate\n");
-		ret = PTR_ERR(fpc1020->gpio_state_active);
-		goto err;
-	}
-
-	fpc1020->gpio_state_suspend =
-		pinctrl_lookup_state(fpc1020->ts_pinctrl, "pmx_fp_suspend");
-	if (IS_ERR_OR_NULL(fpc1020->gpio_state_suspend)) {
-		dev_err(dev, "Cannot get sleep pinstate\n");
-		ret = PTR_ERR(fpc1020->gpio_state_suspend);
-		goto err;
-	}
-
-	return 0;
-err:
-	fpc1020->ts_pinctrl = NULL;
-	fpc1020->gpio_state_active = NULL;
-	fpc1020->gpio_state_suspend = NULL;
-	return ret;
-}
-
-/* -------------------------------------------------------------------- */
-static int fpc1020_pinctrl_select(struct fpc1020_data *fpc1020, bool on)
-{
-	int ret = 0;
-	struct pinctrl_state *pins_state;
-	struct device *dev = fpc1020->dev;
-
-	pins_state = on ? fpc1020->gpio_state_active : fpc1020->gpio_state_suspend;
-	if (!IS_ERR_OR_NULL(pins_state)) {
-		ret = pinctrl_select_state(fpc1020->ts_pinctrl, pins_state);
-		if (ret) {
-			dev_err(dev, "can not set %s pins\n",
-				on ? "pmx_ts_active" : "pmx_ts_suspend");
-			return ret;
-		}
-	} else {
-		dev_err(dev, "not a valid '%s' pinstate\n",
-			on ? "pmx_ts_active" : "pmx_ts_suspend");
-	}
-
-	return ret;
-}
-#endif
 /*
 static int hw_reset(struct  fpc1020_data *fpc1020)
 {
@@ -364,13 +296,11 @@ static int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
 	return -EINVAL;
 found:
 	vreg = fpc1020->vreg[i];
-	#ifdef ONEPLUS_EDIT
 	//if(i == 2)
 	{
 	    dev_err(dev, "ignor Regulator %s :enable(%d)\n", name,enable);
 	    return 0;
 	}
-	#endif
 	if (enable) {
 		if (!vreg) {
 			vreg = regulator_get(dev, name);
@@ -536,7 +466,6 @@ static int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
 		const char *n = pctl_names[i];
 		dev_err(dev, "i=%zu  , n='%s', pass in:'%s'\n",i, n, name);
 		if (!strncmp(n, name, strlen(n))) {
-		#ifdef ONEPLUS_EDIT
 		    if(i == 1)
 		    {
 		        gpio_direction_output(fpc1020->rst_gpio,0);
@@ -552,18 +481,9 @@ static int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
 		    else
 		    {
 		        dev_err(dev, "%s : Ignor '%s'\n", n, name);
-                rc = 0;
+                	rc = 0;
 		        goto exit;
 		    }
-		#else
-			rc = pinctrl_select_state(fpc1020->fingerprint_pinctrl,
-					fpc1020->pinctrl_state[i]);
-			if (rc)
-				dev_err(dev, "cannot select '%s'\n", name);
-			else
-				dev_dbg(dev, "Selected '%s'\n", name);
-            goto exit;
-        #endif
 		}
 	}
 
@@ -1028,26 +948,14 @@ static int fpc1020_probe(struct spi_device *spi)
 			&fpc1020->irq_gpio);
 	if (rc)
 		goto exit;
-	#ifdef ONEPLUS_EDIT
     gpio_direction_input(fpc1020->irq_gpio);
-	#endif
-	#ifndef ONEPLUS_EDIT
-	rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_cs0",
-			&fpc1020->cs0_gpio);
-	if (rc)
-		goto exit;	
-	rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_cs1",
-			&fpc1020->cs1_gpio);
-	if (rc)
-		goto exit;
-	#endif
+
 	rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_rst",
 			&fpc1020->rst_gpio);
 	if (rc)
 		goto exit;
-    #ifdef ONEPLUS_EDIT
+
     gpio_direction_output(fpc1020->rst_gpio,1);
-	#endif
 
     rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_vendor",
 			&fpc1020->vendor_gpio);
@@ -1247,3 +1155,4 @@ MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Aleksej Makarov");
 MODULE_AUTHOR("Henrik Tillman <henrik.tillman@fingerprints.com>");
 MODULE_DESCRIPTION("FPC1020 Fingerprint sensor device driver.");
+

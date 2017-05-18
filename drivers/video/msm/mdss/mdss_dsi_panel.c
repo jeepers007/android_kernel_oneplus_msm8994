@@ -31,11 +31,8 @@
 #define MIN_REFRESH_RATE 30
 #define DEFAULT_MDP_TRANSFER_TIME 14000
 
-
-#ifdef VENDOR_EDIT
 #include <linux/boot_mode.h>
 
-/* guizhiming Add for set cabc 2015-04-01 */
 struct dsi_panel_cmds cabc_off_sequence;
 struct dsi_panel_cmds cabc_user_interface_image_sequence;
 struct dsi_panel_cmds cabc_still_image_sequence;
@@ -49,14 +46,10 @@ enum
 	CABC_HIGH_MODE,
 
 };
-int cabc_mode = CABC_MIDDLE_MODE; //defaoult mode level 2 in dtsi file
+int cabc_mode = CABC_MIDDLE_MODE; //default mode level 2 in dtsi file
 struct mdss_dsi_ctrl_pdata *panel_data;
 static bool flag_lcd_off = false;
 static DEFINE_MUTEX(cabc_mutex);
-
-#endif
-
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28
 
 #include <linux/project_info.h>
 #define ESD_TE_Check_On
@@ -125,7 +118,7 @@ static void techeck_work_func( struct work_struct *work )
 	schedule_delayed_work(&techeck_work, msecs_to_jiffies(2000));
 }
 #endif
-#endif /*EDIT*/
+
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
@@ -349,8 +342,6 @@ disp_en_gpio_err:
 	return rc;
 }
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-04-23 for EVT2
-
 static int lcd_power_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
  
@@ -385,11 +376,8 @@ lcd_5v_n_gpio_err:
 	} 
  	return rc;
 }
-#endif
 
 extern int syna_use_gesture;
-
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-07-04 for EVT2 DVT PVT
 
 int vendor_lcd_power_on(struct mdss_panel_data *pdata, int enable)
 {
@@ -465,10 +453,6 @@ int vendor_lcd_power_on(struct mdss_panel_data *pdata, int enable)
 
 }
 
-#endif
-
-
-
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -507,7 +491,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 				gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
 
-#ifdef VENDOR_EDIT
 			//ykl do hw reset when use gesture resume
 			//if (!syna_use_gesture)/*GZM add for the */
 			//{
@@ -518,16 +501,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 						usleep(pinfo->rst_seq[i] * 1000);
 				}
 			//}
-#else
-
-			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
-				gpio_set_value((ctrl_pdata->rst_gpio),
-					pdata->panel_info.rst_seq[i]);
-				if (pdata->panel_info.rst_seq[++i])
-					usleep(pinfo->rst_seq[i] * 1000);
-			}
-
-#endif
 
 			if (gpio_is_valid(ctrl_pdata->bklt_en_gpio))
 				gpio_set_value((ctrl_pdata->bklt_en_gpio), 1);
@@ -558,13 +531,11 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 			gpio_free(ctrl_pdata->disp_en_gpio);
 		}
-	#ifdef VENDOR_EDIT
 		if (!syna_use_gesture)    
 		{
 			gpio_set_value((ctrl_pdata->rst_gpio), 0);
 
 		}
-	#endif
 		if((get_boot_mode() == MSM_BOOT_MODE__RF)||(get_boot_mode() == MSM_BOOT_MODE__WLAN))
 			gpio_set_value((ctrl_pdata->rst_gpio), 0);
 
@@ -876,8 +847,6 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 	}
 }
 
-#ifdef VENDOR_EDIT /*guozhiming add for CABC adjust backlight*/
-
 int set_cabc(int level)
 {
 	int ret = 0;
@@ -957,8 +926,6 @@ static int set_cabc_resume_mode(int mode)
 	return ret;
 }
 
-#endif /*VENDOR_EDIT*/
-
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
@@ -990,55 +957,23 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 			(pinfo->mipi.boot_mode != pinfo->mipi.mode))
 		on_cmds = &ctrl->post_dms_on_cmds;
 
-#ifndef VENDOR_EDIT
-	memset(rx_buf, 0, sizeof(rx_buf));
-	mdss_debug_enable_clock(1);
-	mdss_dsi_panel_cmd_read(ctrl, 0x0A, 0, NULL, rx_buf, 1);
-	printk("%s: before wake up Reg 0A: 0x%02x\n", __func__, rx_buf[0]);
-	mdss_debug_enable_clock(0);
-
-	if (on_cmds->cmd_cnt)
-	{
-		printk(KERN_ERR"Send the lcd initial cmd \n");
-				mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
-	}
-
-	memset(rx_buf, 0, sizeof(rx_buf));
-	mdss_debug_enable_clock(1);
-	mdss_dsi_panel_cmd_read(ctrl, 0x0A, 0, NULL, rx_buf, 1);
-	printk("%s: after wake up Reg 0A 0x%02x\n", __func__, rx_buf[0]);
-	memset(rx_buf, 0, sizeof(rx_buf));
-	mdss_dsi_panel_cmd_read(ctrl, 0x0E, 0, NULL, rx_buf, 1);
-	printk("%s: TE Reg 0E 0x%02x\n", __func__, rx_buf[0]);	
-	mdss_debug_enable_clock(0);
-#else
 	if (on_cmds->cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
 
-#endif
-
-#ifdef VENDOR_EDIT
-	/* Liqiu@oem.cn, 2015/05/02 add for resume cabc */
 	if(cabc_mode != CABC_MIDDLE_MODE){
 		set_cabc_resume_mode(cabc_mode);
 	}
-#endif /*VENDOR_EDIT*/
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28
 #ifdef ESD_TE_Check_On
 	if((get_boot_mode() != MSM_BOOT_MODE__RF)&&(get_boot_mode() != MSM_BOOT_MODE__WLAN))
 	{
 		schedule_delayed_work(&techeck_work, msecs_to_jiffies(5000));
 	}
 #endif
-#endif /*VENDOR_EDIT*/
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-04-01 for cabc function
 	mutex_lock(&cabc_mutex);
 	flag_lcd_off = false;
 	mutex_unlock(&cabc_mutex);
-#endif
-
 end:
 	pinfo->blank_state = MDSS_PANEL_BLANK_UNBLANK;
 	pr_debug("%s:-\n", __func__);
@@ -1056,14 +991,9 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		return -EINVAL;
 	}
 
-#ifdef VENDOR_EDIT
-	//LiQiu@oem.cn add 2015-04-29
 	mutex_lock(&cabc_mutex);
 	flag_lcd_off = true;
 	mutex_unlock(&cabc_mutex);
-#endif
-
-#ifdef VENDOR_EDIT	//gzm@oem add 2015-03-28
 
 #ifdef ESD_TE_Check_On
 	if((get_boot_mode() != MSM_BOOT_MODE__RF)&&(get_boot_mode() != MSM_BOOT_MODE__WLAN))
@@ -1071,8 +1001,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		cancel_delayed_work_sync(&techeck_work);
 	}
 #endif
-
-#endif/*VENDOR_EDIT*/
 
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -2357,7 +2285,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	mdss_dsi_parse_lane_swap(np, &(pinfo->mipi.dlane_swap));
 
-#ifdef VENDOR_EDIT /*guozhiming add for CABC function 2015-04-01*/
 	mdss_dsi_parse_dcs_cmds(np, &cabc_off_sequence,
 			"qcom,mdss-dsi-cabc-off-command", "qcom,mdss-dsi-off-command-state");
 	mdss_dsi_parse_dcs_cmds(np, &cabc_user_interface_image_sequence,
@@ -2367,15 +2294,13 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &cabc_video_image_sequence,
 			"qcom,mdss-dsi-cabc-video-command", "qcom,mdss-dsi-off-command-state");
 	mdss_dsi_parse_dcs_cmds(np, &oa_sequence, "qcom,mdss-dsi-on-command-oa", "qcom,mdss-dsi-on-command-state");
-#endif
 
 	mdss_dsi_parse_reset_seq(np, pinfo->rst_seq, &(pinfo->rst_seq_len),
 		"qcom,mdss-dsi-reset-sequence");
 
-    #ifdef VENDOR_EDIT
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->on_cmds_shoushi,
 			"qcom,mdss-dsi-on-command_shoushi", "qcom,mdss-dsi-on-command-state");
-	#endif
+
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
@@ -2407,13 +2332,11 @@ int mdss_dsi_panel_init(struct device_node *node,
 	int rc = 0;
 	static const char *panel_name;
 	struct mdss_panel_info *pinfo;
-#ifdef VENDOR_EDIT
 	static const char *panel_manufacture;
 	static const char *panel_version;
 	static const char *backlight_manufacture;
 	static const char *backlight_version;
 	panel_data = ctrl_pdata;
-#endif
 
 	if (!node || !ctrl_pdata) {
 		pr_err("%s: Invalid arguments\n", __func__);
@@ -2447,8 +2370,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	pinfo->is_lpm_mode = false;
 	pinfo->esd_rdy = false;
 
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28
-
 #ifdef ESD_TE_Check_On
 	if((get_boot_mode() !=MSM_BOOT_MODE__RF)&&(get_boot_mode() !=MSM_BOOT_MODE__WLAN))
 	{
@@ -2480,8 +2401,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	}
 #endif
 
-
-#ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28
 	panel_manufacture = of_get_property(node, "qcom,mdss-dsi-panel-manufacture", NULL);
 	if (!panel_manufacture)
 		pr_info("%s:%d, panel manufacture not specified\n", __func__, __LINE__);
@@ -2498,10 +2417,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 
 	push_component_info(LCD, (char *)panel_version, (char *)panel_manufacture);
 	push_component_info(BACKLIGHT, (char *)backlight_version, (char *)backlight_manufacture);
-#endif
-
-
-#endif /*VENDOR_EDIT*/
 	ctrl_pdata->on = mdss_dsi_panel_on;
 	ctrl_pdata->off = mdss_dsi_panel_off;
 	ctrl_pdata->low_power_config = mdss_dsi_panel_low_power_config;

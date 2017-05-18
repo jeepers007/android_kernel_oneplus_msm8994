@@ -81,13 +81,11 @@
 	}while(0)
 
 /*---------------------------------------------Global Variable----------------------------------------------*/
- static unsigned int tp_debug = 0;
+static unsigned int tp_debug = 0;
 static int force_update = 0;
 static int key_reverse = 0;
-#ifdef VENDOR_EDIT //WayneChang, 2015/12/29, add flag to enable virtual key
 bool virtual_key_enable = false;
 EXPORT_SYMBOL(virtual_key_enable);
-#endif
 static struct synaptics_ts_data *tc_g = NULL;
 int test_err = 0;
 
@@ -190,8 +188,6 @@ static const struct dev_pm_ops synaptic_pm_ops = {
 #endif
 };
 
-//add by jiachenghui for boot time optimize 2015-5-13
-#ifdef VENDOR_EDIT
 static int probe_ret;
 struct synaptics_optimize_data{
 	struct delayed_work work;
@@ -244,17 +240,9 @@ static int oem_synaptics_ts_probe(struct i2c_client *client, const struct i2c_de
 	//spin_unlock_irqrestore(&oem_lock, flags);
 	return probe_ret;
 }
-#endif /*VENDOR_EDIT*/
-//end add by jiachenghui for boot time optimize 2015-5-13
 
 static struct i2c_driver tc_i2c_driver = {
-//add by jiachenghui for boot time optimize 2015-5-13
-#ifdef VENDOR_EDIT
 	.probe		= oem_synaptics_ts_probe,
-#else
-//end add by jiachenghui for boot time optimize 2015-5-13
-	.probe		= synaptics_ts_probe,
-#endif /*VENDOR_EDIT*///add by jiachenghui for boot time optimize 2015-5-13
 	.remove		= synaptics_ts_remove,
 	.id_table	= synaptics_ts_id,
 	.driver = {
@@ -377,6 +365,7 @@ static int tc_power(struct synaptics_ts_data *ts, unsigned int on)
 	return ret;
 }
 */
+
 static int synaptics_read_register_map(struct synaptics_ts_data *ts)
 {
 	uint8_t buf[4];
@@ -667,13 +656,8 @@ static int synaptics_rmi4_i2c_write_word(struct i2c_client* client,
 }
 */
 static char log_count = 0;
-#ifdef VENDOR_EDIT //WayneChang, 2015/11/13, Change MENU key to APPSELECT key
 #define REP_KEY_APPSELECT (key_reverse?(KEY_BACK):(KEY_APPSELECT))
 #define REP_KEY_BACK (key_reverse?(KEY_APPSELECT):(KEY_BACK))
-#else
-#define REP_KEY_MENU (key_reverse?(KEY_BACK):(KEY_MENU))
-#define REP_KEY_BACK (key_reverse?(KEY_MENU):(KEY_BACK))
-#endif
 
 static void int_key(struct synaptics_ts_data *ts )
 {
@@ -751,13 +735,9 @@ static void synaptics_ts_report(struct synaptics_ts_data *ts )
         //goto END;
     }
     if( inte & 0x10) {
-#ifdef VENDOR_EDIT //WayneChang, 2015/12/29, add flag to enable virtual key
 	if(!virtual_key_enable){
 		int_key(ts);
-	}
-#else
-        int_key(ts);
-#endif
+	}	
     }
 END:
 	return;
@@ -787,11 +767,7 @@ static int	synaptics_input_init(struct synaptics_ts_data *ts)
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
 	set_bit(KEY_BACK, ts->input_dev->keybit);
-#ifdef VENDOR_EDIT //WayneChang, 2015/11/13, Change MENU key to APPSELECT key
-    set_bit(KEY_APPSELECT, ts->input_dev->keybit);
-#else
-	set_bit(KEY_MENU, ts->input_dev->keybit);
-#endif
+	set_bit(KEY_APPSELECT, ts->input_dev->keybit);
 	set_bit(KEY_HOMEPAGE, ts->input_dev->keybit);
 	input_set_drvdata(ts->input_dev, ts);
 
@@ -938,7 +914,6 @@ const struct file_operations proc_reverse_key =
 	.release	= single_release,
 };
 
-#ifdef VENDOR_EDIT //WayneChang, 2015/12/29, add flag to enable virtual key
 static ssize_t synaptics_s1302_virtual_key_enable_write(struct file *file, const char __user *page, size_t t, loff_t *lo)
 {
 	int ret = 0;
@@ -978,7 +953,6 @@ const struct file_operations proc_virtual_key =
 	.llseek 	= seq_lseek,
 	.release	= single_release,
 };
-#endif
 
 static int page ,address,block;
 static int synaptics_s1302_radd_show(struct seq_file *seq, void *offset)
