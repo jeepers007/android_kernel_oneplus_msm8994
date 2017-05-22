@@ -56,12 +56,8 @@
 extern void printascii(char *);
 #endif
 
-/*Anderson-Fix_kmsg_timestamp_error-01+[*/
-#ifdef VENDOR_EDIT
 static bool print_wall_time = 0;
 module_param_named(print_wall_time, print_wall_time, bool, S_IRUGO | S_IWUSR);
-#endif //VENDOR_EDIT
-/*Anderson-Fix_kmsg_timestamp_error-01+]*/
 
 /* printk's without a loglevel use this.. */
 #define DEFAULT_MESSAGE_LOGLEVEL CONFIG_DEFAULT_MESSAGE_LOGLEVEL
@@ -414,12 +410,8 @@ static void log_oops_store(struct log *msg)
 }
 #endif
 
-/*Anderson-Fix_kmsg_timestamp_error-01+[*/
-#ifdef VENDOR_EDIT
 enum log_flags prevflag = LOG_NEWLINE;
 int __getnstimeofday(struct timespec *ts);
-#endif //VENDOR_EDIT
-/*Anderson-Fix_kmsg_timestamp_error-01+]*/
 
 /* insert record into the buffer, discard old ones, update heads */
 static void log_store(int facility, int level,
@@ -429,8 +421,6 @@ static void log_store(int facility, int level,
 {
 	struct log *msg;
 	u32 size, pad_len;
-/*Anderson-Fix_kmsg_timestamp_error-01+[*/
-#ifdef VENDOR_EDIT
 	static bool time_showed ;
 	static char timebuf[LOG_LINE_MAX];
 	static char testbuf[64];
@@ -496,8 +486,6 @@ static void log_store(int facility, int level,
 	else{
 		time_showed = false;
 	}
-#endif //VENDOR_EDIT
-/*Anderson-Fix_kmsg_timestamp_error-01+]*/
 
 	/* number of '\0' padding bytes to next message */
 	size = sizeof(struct log) + text_len + dict_len;
@@ -548,12 +536,8 @@ static void log_store(int facility, int level,
 		msg->ts_nsec = ts_nsec;
 	else
 		msg->ts_nsec = local_clock();
-/*Anderson-Fix_kmsg_timestamp_error-01+[*/
-#ifdef VENDOR_EDIT
 	if(time_showed)
 		msg->ts_nsec = -1;
-#endif //VENDOR_EDIT
-/*Anderson-Fix_kmsg_timestamp_error-01+]*/
 	memset(log_dict(msg) + dict_len, 0, pad_len);
 	msg->len = sizeof(struct log) + text_len + dict_len + pad_len;
 
@@ -1048,7 +1032,6 @@ early_param("ignore_loglevel", ignore_loglevel_setup);
 module_param(ignore_loglevel, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(ignore_loglevel, "ignore loglevel setting, to"
 	"print all kernel messages to the console.");
-#ifdef VENDOR_EDIT
 static int __init ftm_console_silent_setup(char *str)
 {
 	printk(KERN_INFO "ftm_silent_log\n");
@@ -1059,7 +1042,6 @@ static int __init ftm_console_silent_setup(char *str)
 
 early_param("ftm_console_silent", ftm_console_silent_setup);
 
-#endif
 #ifdef CONFIG_BOOT_PRINTK_DELAY
 
 static int boot_delay; /* msecs delay after each printk during bootup */
@@ -1129,12 +1111,8 @@ static size_t print_time(u64 ts, char *buf)
 	if (!printk_time)
 		return 0;
 
-/*Anderson-Fix_kmsg_timestamp_error-01+[*/
-#ifdef VENDOR_EDIT
 	if(ts == -1)
 		return 0;
-#endif //VENDOR_EDIT
-/*Anderson-Fix_kmsg_timestamp_error-01+]*/
 
 	rem_nsec = do_div(ts, 1000000000);
 

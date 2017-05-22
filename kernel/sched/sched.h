@@ -113,28 +113,20 @@ struct cfs_rq;
 struct rt_rq;
 
 extern struct list_head task_groups;
-#ifdef VENDOR_EDIT
 void skip_cfs_throttle(int skip);
-#endif
 
 struct cfs_bandwidth {
 #ifdef CONFIG_CFS_BANDWIDTH
 	raw_spinlock_t lock;
 	ktime_t period;
 	u64 quota, runtime;
-#ifdef VENDOR_EDIT
 	u64 quota_per_task;
-#endif
 	s64 hierarchal_quota;
 	u64 runtime_expires;
 
 	int idle, timer_active;
 	struct hrtimer period_timer, slack_timer;
-#ifdef VENDOR_EDIT
 	struct list_head throttled_cfs_rq, unthrottled_cfs_rq;
-#else
-	struct list_head throttled_cfs_rq;
-#endif
 
 	/* statistics */
 	int nr_periods, nr_throttled;
@@ -347,12 +339,9 @@ struct cfs_rq {
 	u64 throttled_clock, throttled_clock_task;
 	u64 throttled_clock_task_time;
 	int throttled, throttle_count;
-#ifdef VENDOR_EDIT
 	struct list_head throttled_list, unthrottled_list;
 	atomic_t throttling_in_progress;
-#else
-	struct list_head throttled_list;
-#endif
+
 #endif /* CONFIG_CFS_BANDWIDTH */
 #endif /* CONFIG_FAIR_GROUP_SCHED */
 };

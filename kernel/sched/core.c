@@ -1688,7 +1688,6 @@ static void update_history(struct rq *rq, struct task_struct *p,
 	if (!runtime || is_idle_task(p) || exiting_task(p) || !samples)
 			goto done;
 
-#ifdef VENDOR_EDIT
 	if (p->ravg.mitigated) {
 		/* update history accroding to previous records
 		 * e.g. 60% loading in big cluster becomes 60% in smallest one
@@ -1702,7 +1701,6 @@ static void update_history(struct rq *rq, struct task_struct *p,
 		}
 		goto update_demand;
 	}
-#endif
 	/* Push new 'runtime' value onto stack */
 	widx = sched_ravg_hist_size - 1;
 	ridx = widx - samples;
@@ -1720,9 +1718,7 @@ static void update_history(struct rq *rq, struct task_struct *p,
 			max = hist[widx];
 	}
 
-#ifdef VENDOR_EDIT
 update_demand:
-#endif
 	p->ravg.sum = 0;
 	if (p->on_rq)
 		p->sched_class->dec_hmp_sched_stats(rq, p);
@@ -1815,11 +1811,7 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 	u32 window_size = sched_ravg_window;
 
 	new_window = mark_start < window_start;
-#ifdef VENDOR_EDIT
 	if (!account_busy_for_task_demand(p, event) || p->ravg.mitigated) {
-#else
-	if (!account_busy_for_task_demand(p, event)) {
-#endif
 		if (new_window)
 			/* If the time accounted isn't being accounted as
 			 * busy time, and a new window started, only the
@@ -1828,13 +1820,11 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 			 * elapsed, but since empty windows are dropped,
 			 * it is not necessary to account those. */
 			update_history(rq, p, p->ravg.sum, 1, event);
-#ifdef VENDOR_EDIT
 		if (p->ravg.mitigated) {
 			/* force update history */
 			update_history(rq, p, 1, RAVG_HIST_SIZE_MAX, event);
 			p->ravg.mitigated = 0;
 		}
-#endif
 		return;
 	}
 
@@ -10139,7 +10129,6 @@ out_unlock:
 	return ret;
 }
 
-#ifdef VENDOR_EDIT
 int tg_set_cfs_quota_per_task(struct task_group *tg, long cfs_quota_us)
 {
 	struct cfs_bandwidth *cfs_b = &tg->cfs_bandwidth;
@@ -10165,7 +10154,6 @@ long tg_get_cfs_quota_per_task(struct task_group *tg)
 
 	return quota_us;
 }
-#endif
 
 int tg_set_cfs_quota(struct task_group *tg, long cfs_quota_us)
 {
@@ -10213,7 +10201,6 @@ long tg_get_cfs_period(struct task_group *tg)
 	return cfs_period_us;
 }
 
-#ifdef VENDOR_EDIT
 static s64 cpu_cfs_quota_per_task_read_s64(struct cgroup *cgrp, struct cftype *cft)
 {
 	return tg_get_cfs_quota_per_task(cgroup_tg(cgrp));
@@ -10224,7 +10211,6 @@ static int cpu_cfs_quota_per_task_write_s64(struct cgroup *cgrp, struct cftype *
 {
 	return tg_set_cfs_quota_per_task(cgroup_tg(cgrp), cfs_quota_us);
 }
-#endif
 
 static s64 cpu_cfs_quota_read_s64(struct cgroup *cgrp, struct cftype *cft)
 {
@@ -10386,13 +10372,11 @@ static struct cftype cpu_files[] = {
 	},
 #endif
 #ifdef CONFIG_CFS_BANDWIDTH
-#ifdef VENDOR_EDIT
 	{
 		.name = "cfs_quota_us_per_task",
 		.read_s64 = cpu_cfs_quota_per_task_read_s64,
 		.write_s64 = cpu_cfs_quota_per_task_write_s64,
 	},
-#endif
 	{
 		.name = "cfs_quota_us",
 		.read_s64 = cpu_cfs_quota_read_s64,

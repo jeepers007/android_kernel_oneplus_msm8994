@@ -560,7 +560,6 @@ int irq_set_irq_wake(unsigned int irq, unsigned int on)
 }
 EXPORT_SYMBOL(irq_set_irq_wake);
 
-#ifdef VENDOR_EDIT
 static int mask_wake_irq_set(const char *buff, const struct kernel_param *kp)
 {
 	char buf[256], *b;
@@ -596,8 +595,6 @@ static const struct kernel_param_ops mask_wake_irq_ops = {
 };
 
 module_param_cb(mask_wake_irq, &mask_wake_irq_ops, NULL, 0644);
-
-#endif
 
 /**
  *     irq_read_line - read the value on an irq line
