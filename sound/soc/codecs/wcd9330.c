@@ -89,16 +89,8 @@ module_param(cpe_debug_mode, int,
 MODULE_PARM_DESC(cpe_debug_mode, "boot cpe in debug mode");
 
 static atomic_t kp_tomtom_priv;
-#ifndef VENDOR_EDIT
-//Kangjirui@MultMedia.Audio, 2015/05/14, Modify for change class h amp to class ab
-/*
-static int high_perf_mode;
-*/
-#else /* VENDOR_EDIT */
+
 static int high_perf_mode = 1;
-#endif /* VENDOR_EDIT */
-
-
 
 module_param(high_perf_mode, int,
 			S_IRUGO | S_IWUSR | S_IWGRP);
@@ -602,11 +594,7 @@ struct tomtom_priv {
 	unsigned long status_mask;
 };
 
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
-    struct tomtom_priv *priv_headset_type;
-#endif
-
+	struct tomtom_priv *priv_headset_type;
 
 static const u32 comp_shift[] = {
 	4, /* Compander 0's clock source is on interpolator 7 */
@@ -690,8 +678,6 @@ static unsigned short tx_digital_gain_reg[] = {
 	TOMTOM_A_CDC_TX10_VOL_CTL_GAIN,
 };
 
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
 enum 
 {
 	NO_DEVICE	= 0,
@@ -717,8 +703,6 @@ static ssize_t wcd9xxx_print_name(struct switch_dev *sdev, char *buf)
 	}
 	return -EINVAL;
 }
-#endif
-
 
 int tomtom_enable_qfuse_sensing(struct snd_soc_codec *codec)
 {
@@ -3658,8 +3642,6 @@ static int tomtom_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 			 *  If not internal, make sure to write the
 			 *  register to default value
 			 */
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-06-19, Modify for hardware requirement*/
         {
             if((strnstr(w->name, "MIC BIAS1", sizeof("MIC BIAS1")))
                 ||(strnstr(w->name, "MIC BIAS3", sizeof("MIC BIAS3"))))
@@ -3667,7 +3649,6 @@ static int tomtom_codec_enable_micbias(struct snd_soc_dapm_widget *w,
             else
 			    snd_soc_write(codec, micb_int_reg, 0x24);
         }
-#endif
 		if (tomtom->mbhc_started && micb_ctl_reg ==
 		    TOMTOM_A_MICB_2_CTL) {
 			if (++tomtom->micb_2_users == 1) {
@@ -8996,10 +8977,6 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 		goto err_hwdep;
 	}
 	
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
-		
-	
 		tomtom->mbhc.wcd9xxx_sdev.name= "h2w";
 		tomtom->mbhc.wcd9xxx_sdev.print_name = wcd9xxx_print_name;
 		ret = switch_dev_register(&tomtom->mbhc.wcd9xxx_sdev);
@@ -9007,7 +8984,6 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 		{
 			goto err_switch_dev_register;
 		}
-#endif
 
 	tomtom->codec = codec;
 	for (i = 0; i < COMPANDER_MAX; i++) {
@@ -9115,10 +9091,7 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 		/* Do not fail probe if CPE failed */
 		ret = 0;
 	}
-        #ifdef VENDOR_EDIT
-		/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
            priv_headset_type = tomtom;
-        #endif
 	return ret;
 
 err_pdata:
@@ -9127,11 +9100,8 @@ err_hwdep:
 	kfree(tomtom->fw_data);
 err_nomem_slimch:
 
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
 	switch_dev_unregister(&tomtom->mbhc.wcd9xxx_sdev);
 	err_switch_dev_register:
-#endif
 	devm_kfree(codec->dev, tomtom);
 	return ret;
 }

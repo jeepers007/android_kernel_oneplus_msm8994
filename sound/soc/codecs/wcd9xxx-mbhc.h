@@ -11,10 +11,8 @@
  */
 #ifndef __WCD9XXX_MBHC_H__
 #define __WCD9XXX_MBHC_H__
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent report*/
+
 #include<linux/switch.h>
-#endif
 #include "wcd9xxx-resmgr.h"
 #include "wcdcal-hwdep.h"
 
@@ -265,10 +263,7 @@ struct wcd9xxx_mbhc_config {
 	unsigned int mclk_rate;
 	unsigned int gpio;
 	unsigned int gpio_irq;
-#ifdef VENDOR_EDIT
-/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
-    int headset_type;
-#endif
+	int headset_type;
 	int gpio_level_insert;
 	bool insert_detect; /* codec has own MBHC_INSERT_DETECT */
 	bool detect_extn_cable;
@@ -411,11 +406,8 @@ struct wcd9xxx_mbhc {
 
 	/* Indicates status of current source switch */
 	bool is_cs_enabled;
-#ifdef VENDOR_EDIT
-	/*wangdongdong@MultiMedia.AudioDrv, 2015-03-24, Modify for headset uevent*/
+
 	struct switch_dev wcd9xxx_sdev;
-	
-#endif
 
 	/* Holds type of Headset - Mono/Stereo */
 	enum mbhc_hph_type hph_type;
