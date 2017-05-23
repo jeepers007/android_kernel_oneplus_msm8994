@@ -85,13 +85,9 @@
 
 int tfa98xx_set_I2S2(struct tfa98xx *tfa98xx);
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-08-13, add for mtp recovery*/
 int recoverMtp0 = false;
 
 EXPORT_SYMBOL_GPL(recoverMtp0);
-#endif
-
 
 /*
  * write a bit field
@@ -142,8 +138,6 @@ int tfaRunWriteRegister(struct tfa98xx *tfa98xx, struct nxpTfaRegpatch *reg)
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, repair when MTP 0 fail*/
 int tfa98xx_restore_mtp(struct tfa98xx *tfa98xx)
 {
 	struct snd_soc_codec *codec = tfa98xx->codec;
@@ -210,8 +204,6 @@ int tfa98xx_restore_i2cmtp(struct tfa98xx *tfa98xx)
 
     return 0;
 }
-
-#endif
 
 /*
  * tfa98xx_dsp_system_stable will compensate for the wrong behavior of CLKS
@@ -713,12 +705,9 @@ static int tfa98xx_startup(struct tfa98xx *tfa98xx)
 {
 	int tries, status, ret;
 
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, Modify for MTP repare*/
     struct snd_soc_codec *codec = tfa98xx->codec;
     u16 statusreg = 0;
     u16 mtp0;
-#endif
 
 	/* load the optimal TFA98XX in HW settings */
 	ret = tfa98xx_init(tfa98xx);
@@ -739,54 +728,27 @@ static int tfa98xx_startup(struct tfa98xx *tfa98xx)
 	/* power on the sub system */
 	ret = tfa98xx_powerdown(tfa98xx, 0);
 
-#ifndef VENDOR_EDIT
-
-	tfa98xx_set_I2S2(tfa98xx);
-
-	/*  powered on
-	 *    - now it is allowed to access DSP specifics
-	 */
-
-	/*
-	 * wait until the DSP subsystem hardware is ready
-	 *    note that the DSP CPU is not running (RST=1)
-	 */
-	for (tries = 1; tries < CFSTABLE_TRIES; tries++) {
-		ret = tfa98xx_dsp_system_stable(tfa98xx, &status);		
-		if (status)
-			break;
-	}
-
-	if (tries == CFSTABLE_TRIES) {
-		pr_err("tfa98xx_dsp_system_stable Time out\n");
-		return -ETIMEDOUT;
-	}  else {
-		pr_debug("OK (tries=%d)\n", tries);
-	}
-
-#else
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, Modify for MTP repare*/
-    /* NXP: This is not supposed to be here */
+	/* NXP: This is not supposed to be here */
 	//tfa98xx_set_I2S2(tfa98xx);
 
-    /* NXP: Added the check of AREF before reset DSP */
-    /*  powered on
+	/* NXP: Added the check of AREF before reset DSP */
+	/*  powered on
 	 *    - now check if it is allowed to access DSP specifics
 	*/
-    for (tries = 1; tries < CFSTABLE_TRIES; tries++) {
+	for (tries = 1; tries < CFSTABLE_TRIES; tries++) {
         statusreg = (u16)snd_soc_read(codec, TFA98XX_STATUSREG);
         if (statusreg & TFA98XX_STATUSREG_AREFS_MSK)
             break;
         else
             msleep_interruptible(1);
-    }
+	}
 
-    /* NXP: Added putting DSP to reset mode to start TFA in proper sequence */
-    /*
-    * Reset Coolflux
-    */
-    ret = tfa98xx_dsp_reset(tfa98xx,1);
-    if (ret)
+	/* NXP: Added putting DSP to reset mode to start TFA in proper sequence */
+	/*
+	* Reset Coolflux
+	*/
+	ret = tfa98xx_dsp_reset(tfa98xx,1);
+	if (ret)
         pr_err("TFA set DSP to reset failed\n");
 
 	/*
@@ -822,12 +784,6 @@ static int tfa98xx_startup(struct tfa98xx *tfa98xx)
 	}  else {
 		pr_debug("OK (tries=%d)\n", tries);
 	}
-
-
-#endif
-
-
-
 	return 0;
 }
 
@@ -945,24 +901,12 @@ int tfa98xx_dsp_power_up(struct tfa98xx *tfa98xx)
 	int ret = 0;
 	int tries, status;
 
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-13, Modify for MTP repare*/
 u16 mtp0;
 struct snd_soc_codec *codec = tfa98xx->codec;
-#endif
 
 	/* power on the sub system */
 	ret = tfa98xx_powerdown(tfa98xx, 0);
 
-#ifndef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-13, Modify for dsp_system_stable*/
-	// wait until everything is stable, in case clock has been off
-	for (tries = CFSTABLE_TRIES; tries > 0; tries--) {
-		ret = tfa98xx_dsp_system_stable(tfa98xx, &status);
-		if (status)
-			break;
-	}
-#else
 	for (tries = CFSTABLE_TRIES; tries > 0; tries--) {
 		ret = tfa98xx_dsp_system_stable(tfa98xx, &status);
 		if (status)
@@ -970,16 +914,7 @@ struct snd_soc_codec *codec = tfa98xx->codec;
         else
             msleep_interruptible(5);
 	}
-#endif
 
-#ifndef VENDOR_EDIT
-	if (tries==0) {
-		// timedout
-		pr_err("DSP subsystem start timed out\n");
-		return -ETIMEDOUT;
-	}
-#else
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-13, Modify for MTP repare*/
     if (tries == 0) {
 		pr_err("tfa98xx_dsp_system_stable Time out\n");
         /*
@@ -1001,10 +936,6 @@ struct snd_soc_codec *codec = tfa98xx->codec;
 	}  else {
 		pr_debug("OK (tries=%d)\n", tries);
 	}
-
-#endif
-
-
 	return ret;
 }
 
@@ -1848,11 +1779,8 @@ int tfa98xx_dsp_get_calibration_impedance(struct tfa98xx *tfa98xx, u32 *re25)
 
 	tfa98xx_convert_bytes2data(3, bytes, data);
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-05-29, change for calibration*/
 	/* /2^23*2^(def.SPKRBST_TEMPERATURE_EXP) */
 	*re25 = (TO_FIXED(data[0]) *1000) / (1 << (23 - SPKRBST_TEMPERATURE_EXP));
-#endif
 	return ret;
 }
 
@@ -1971,21 +1899,21 @@ module_param(coldboot, int, S_IRUGO | S_IWUSR);
 int setOtc(struct tfa98xx *tfa98xx, int otcOn)
 {
 //    Tfa98xx_Error_t err = Tfa98xx_Error_Ok;
-    struct snd_soc_codec *codec = tfa98xx->codec;	
+    	struct snd_soc_codec *codec = tfa98xx->codec;	
 	int ret = 0;
 	int tries = 0;
 	u16 status;
 	u16 mtp;
 
-    //err = Tfa98xx_ReadRegister16(handle, TFA98XX_MTP, &mtp);
-    mtp = snd_soc_read(codec, TFA98XX_MTP);
-    //assert(err == Tfa98xx_Error_Ok);
+	//err = Tfa98xx_ReadRegister16(handle, TFA98XX_MTP, &mtp);
+	mtp = snd_soc_read(codec, TFA98XX_MTP);
+	//assert(err == Tfa98xx_Error_Ok);
 
-//    assert((otcOn == 0) || (otcOn == 1) );
+	//    assert((otcOn == 0) || (otcOn == 1) );
 
-    /* set reset MTPEX bit if needed */
-    if ( (mtp & TFA98XX_MTP_MTPOTC) != otcOn)
-    {
+    	/* set reset MTPEX bit if needed */
+	if ( (mtp & TFA98XX_MTP_MTPOTC) != otcOn)
+	{
         /* need to change the OTC bit, set MTPEX=0 in any case */
         //err = Tfa98xx_WriteRegister16(handle, 0x0B, 0x5A); /* unlock key2 */
 	snd_soc_write(codec, 0x0B, 0x5A);	
@@ -1998,12 +1926,12 @@ int setOtc(struct tfa98xx *tfa98xx, int otcOn)
 	snd_soc_write(codec, 0x62, 1<<11);		
         //assert(err == Tfa98xx_Error_Ok);
 
-//        mtpChanged =1;
+	// mtpChanged =1;
 
 
-    //Sleep(13*16); /* need to wait until all parameters are copied into MTP */
-    do
-    {
+	//Sleep(13*16); /* need to wait until all parameters are copied into MTP */
+	do
+	{
         //err = Tfa98xx_ReadRegister16(handle, TFA98XX_STATUSREG, &status);
 	status = snd_soc_read(codec, TFA98XX_STATUSREG);	
         if((status & TFA98XX_STATUSREG_MTPB_MSK) == TFA98XX_STATUSREG_MTPB_MSK) {
@@ -2013,18 +1941,15 @@ int setOtc(struct tfa98xx *tfa98xx, int otcOn)
         } else {
             break;
         }
-    } while (tries < 300);
+	} while (tries < 300);
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-05-29, add for calibration*/
-    snd_soc_write(codec, 0x0B, 0x0);
-#endif
-    if( (status & TFA98XX_STATUSREG_MTPB_MSK) != 0) {
-    }
+	snd_soc_write(codec, 0x0B, 0x0);
+	if( (status & TFA98XX_STATUSREG_MTPB_MSK) != 0) {
+	}
 
-    }
+	}
 
-    return ret;	
+	return ret;	
 	
 }
 
@@ -2123,27 +2048,12 @@ int tfaRunSpeakerBoost(struct tfa98xx *tfa98xx, int force)
 		/* already warm, so just pwr on */
 		ret = tfa98xx_dsp_power_up(tfa98xx);
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-22,add to avoid sound failed*/
         done = 1;
-#endif
 	}
 
     tfa98xx_dsp_get_calibration_impedance(tfa98xx, &re25);
 	pr_debug("imp: %d ohms\n", re25);
 
-#ifndef VENDOR_EDIT
-	//zhiguang.su change by nxp
-    //Check if device has been calibrated 
-    if (!tfa98xx_is_calibrated(tfa98xx)){
-        pr_err("Not calibrated, power down devcie\n");
-		ret = tfa98xx_powerdown(tfa98xx, 1);
-	    if (ret)
-		    return ret;
-
-		return -EINVAL;
-    }
-#else
     //Check if device has been calibrated 
     if (!done){
         pr_err("Not calibrated, power down devcie\n");
@@ -2153,7 +2063,7 @@ int tfaRunSpeakerBoost(struct tfa98xx *tfa98xx, int force)
 
 		return -EINVAL;
     }	
-#endif
+
 
 	tfa98xx_set_I2S2(tfa98xx);
 
@@ -2168,11 +2078,7 @@ int tfaRunSpeakerQuickBoost(struct tfa98xx *tfa98xx, int force)
     //u32 re25;
 	int done;
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-18,avoid pop */
 		tfa98xx_set_mute(tfa98xx, Tfa98xx_Mute_Digital);
-#endif
-
 
 	if (force) {
 		ret = tfaRunColdStartup(tfa98xx);
@@ -2262,9 +2168,7 @@ int tfaRunSpeakerQuickBoost(struct tfa98xx *tfa98xx, int force)
 //    tfa98xx_dsp_get_calibration_impedance(tfa98xx, &re25);
 //	pr_debug("imp: %d ohms\n", re25);
 
-//#ifndef VENDOR_EDIT
 #if 1
-	//zhiguang.su change by nxp
     //Check if device has been calibrated 
     if (!tfa98xx_is_calibrated(tfa98xx)){
         pr_err("Not calibrated, power down devcie\n");
@@ -2286,10 +2190,7 @@ int tfaRunSpeakerQuickBoost(struct tfa98xx *tfa98xx, int force)
     }	
 #endif
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-18,avoid pop */
 //	tfa98xx_unmute(tfa98xx);
-#endif
 
 	return ret;
 }
@@ -2343,26 +2244,17 @@ if (profile != tfa98xx->profile_current)
 
 #endif
 
-
-#ifdef VENDOR_EDIT
-	/* zhiguang.su@MultiMedia.AudioDrv on 2015-04-15,add by nxp patch */
 	if(profile == 2)
 	{
 	   tfa98xx_enabledatao(tfa98xx);
 	}
-    else
-    {
-       tfa98xx_disabledatao(tfa98xx);
-    }
-#endif
+	else
+	{
+	tfa98xx_disabledatao(tfa98xx);
+	}
 
-
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-18,avoid pop */
-    msleep_interruptible(10);
+	msleep_interruptible(10);
 	tfa98xx_unmute(tfa98xx);
-#endif
-
 
 	return 0;
 }
@@ -2403,19 +2295,14 @@ int tfa98xx_dsp_start(struct tfa98xx *tfa98xx, int profile, int vstep)
 		tfaContWriteFilesProf(tfa98xx, profile, vstep);
 
 
-#ifdef VENDOR_EDIT
-	/* zhiguang.su@MultiMedia.AudioDrv on 2015-04-15,add by nxp patch */
 	if(profile == 2)
 	{
 	   tfa98xx_enabledatao(tfa98xx);
 	}
-    else
-    {
+	else
+	{
        tfa98xx_disabledatao(tfa98xx);
-    }
-#endif
-
-
+	}
 	return 0;
 }
 
@@ -2444,3 +2331,4 @@ int tfa98xx_dsp_stop(struct tfa98xx *tfa98xx)
     
 	return ret;
 }
+

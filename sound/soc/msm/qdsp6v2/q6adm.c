@@ -987,8 +987,6 @@ dolby_dap_send_param_return:
 	return rc;
 }
 
-#ifdef VENDOR_EDIT
-//#lifei@OnePlus.MultiMediaService, 2015/09/25 add set/get dsp interface
 int adm_set_dirac_enable_params(int port_id, uint32_t module_id, int copp_idx, uint32_t param_id, int enable)
 {
 	struct adm_cmd_set_pp_params_dirac_v5 *adm_params = NULL;
@@ -1061,7 +1059,6 @@ fail_cmd:
 	kfree(adm_params);
 	return ret;
 }
-#endif/*VENDOR_EDIT*/
 
 int adm_get_params(int port_id, int copp_idx, uint32_t module_id,
 		   uint32_t param_id, uint32_t params_length, char *params)
@@ -2203,10 +2200,8 @@ non_mch_path:
 inval_ch_mod:
 	return rc;
 }
-#ifdef VENDOR_EDIT
-/* guoguangyi@mutlmedia,2016.4.23,offload and headset,force use 24bits*/
+
 extern int gis_24bits;
-#endif
 int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	     int perf_mode, uint16_t bit_width, int app_type, int acdb_id)
 {
@@ -2214,14 +2209,11 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	int ret = 0;
 	int port_idx, copp_idx, flags;
 	int tmp_port = q6audio_get_port_id(port_id);
-#ifdef VENDOR_EDIT
-    //guoguangyi@mutimedia.2016.04.07,qcom's patch
-    //use 24bits to get rid of 16bits innate noise
-    if(gis_24bits){
-        bit_width = 24;
-        pr_err("Open adm sepcially for offload\n");
-    }
-#endif
+
+	if(gis_24bits){
+        	bit_width = 24;
+		pr_err("Open adm sepcially for offload\n");
+	}
 
 	pr_debug("%s:port %#x path:%d rate:%d mode:%d perf_mode:%d,topo_id %d\n",
 		 __func__, port_id, path, rate, channel_mode, perf_mode,
@@ -2552,11 +2544,7 @@ int adm_close(int port_id, int perf_mode, int copp_idx)
 
 	int ret = 0, port_idx;
 	int copp_id = RESET_COPP_ID;
-#ifdef VENDOR_EDIT
-    //guoguangyi@mutimedia.2016.04.07,qcom's patch
-    //use 24bits to get rid of 16bits innate noise
-    gis_24bits = 0;
-#endif
+	gis_24bits = 0;
 	pr_debug("%s: port_id=0x%x perf_mode: %d copp_idx: %d\n", __func__,
 		 port_id, perf_mode, copp_idx);
 

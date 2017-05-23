@@ -44,10 +44,7 @@
 
 int testLogOn = 0;
 EXPORT_SYMBOL_GPL(testLogOn);
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, repair when MTP 0 fail*/
 extern int recoverMtp0;
-#endif
 
 static int test =0;
 
@@ -75,8 +72,6 @@ EXPORT_SYMBOL_GPL(g_tfa98xx);
 struct device_node *tfa_codec_np = NULL;
 EXPORT_SYMBOL_GPL(tfa_codec_np);
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-05-29, add for smart pa calibtation*/
 static ssize_t tfa98xx_state_store(struct device *dev, struct device_attribute *attr, 
 		const char *buf, size_t count)
 {
@@ -107,8 +102,6 @@ static ssize_t tfa98xx_state_show(struct device *dev, struct device_attribute *a
 
     mutex_lock(&tfa98xx->dsp_init_lock);
 
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, Modify for MTP recovery*/
         /*
 	     * check the contents of  MTP register for non-zero,
 	     * this indicates that the subsys is ready
@@ -126,7 +119,6 @@ static ssize_t tfa98xx_state_show(struct device *dev, struct device_attribute *a
             }
             tfa98xx_restore_mtp(tfa98xx);
         }
-#endif
 
 	if (!tfa98xx_is_pwdn(tfa98xx)) {
 		tfa98xx_dsp_stop(tfa98xx);
@@ -164,8 +156,6 @@ static ssize_t tfa98xx_state_show(struct device *dev, struct device_attribute *a
 	if (!tfa98xx_dsp_start(tfa98xx, tfa98xx->profile, tfa98xx->vstep))
 		tfa98xx->dsp_init = TFA98XX_DSP_INIT_DONE;
 
-#ifdef VENDOR_EDIT
-/*suzhiguang@MultiMedia.AudioDrv, 2015-08-11, Modify for MTP recovery*/
         /*
 	     * check the contents of  MTP register for non-zero,
 	     * this indicates that the subsys is ready
@@ -178,7 +168,6 @@ static ssize_t tfa98xx_state_show(struct device *dev, struct device_attribute *a
 		    pr_err("%s mtp0 error,now recovery mtp.\n",__func__);
             tfa98xx_restore_mtp(tfa98xx);
         }
-#endif
 
     mtp = snd_soc_read(codec, TFA98XX_MTP);
 	done = (mtp & TFA98XX_MTP_MTPEX);
@@ -200,7 +189,6 @@ err:
 static struct device_attribute tfa98xx_state_attr =
      __ATTR(calibra, 0444, tfa98xx_state_show, tfa98xx_state_store);
 
-/*zhiguang.su@MultiMedia.AudioDrv, 2015-11-05, add for debug*/
 static ssize_t tfa98xx_Log_state_store(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
@@ -230,9 +218,6 @@ static ssize_t tfa98xx_Log_state_show(struct device *dev, struct device_attribut
 
 static struct device_attribute tfa98xx_Log_state_attr =
      __ATTR(Log, S_IWUSR|S_IRUGO, tfa98xx_Log_state_show, tfa98xx_Log_state_store);
-
-#endif
-
 
 /*
  * I2C Read/Write Functions
@@ -308,15 +293,7 @@ static void tfa98xx_monitor(struct work_struct *work)
 	 */
 	val = snd_soc_read(tfa98xx->codec, TFA98XX_STATUSREG);
 	pr_debug("monitor SYS_STATUS: 0x%04x\n", val);
-#ifndef VENDOR_EDIT
-		/* zhiguang.su@MultiMedia.AudioDrv on 2015-04-21, fix bug for sound break off*/
-	if ((TFA98XX_STATUSREG_ACS & val) ||
-		(TFA98XX_STATUSREG_WDS & val) ||
-		(TFA98XX_STATUSREG_SPKS & val) ||
-	   !(TFA98XX_STATUSREG_SWS & val))
-#else
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-08-13, changed by NXP suggestion.*/
-    /* NXP: There's no need to recover in case of SPKS and SWS */
+
     if (TFA98XX_STATUSREG_SPKS & val)
 	    pr_err("ERROR: SPKS\n");
 
@@ -325,8 +302,6 @@ static void tfa98xx_monitor(struct work_struct *work)
 
 	if ((TFA98XX_STATUSREG_ACS & val) ||
 		(TFA98XX_STATUSREG_WDS & val) )
-
-#endif
 	   {
 		tfa98xx->dsp_init = TFA98XX_DSP_INIT_RECOVER;
 
@@ -334,14 +309,6 @@ static void tfa98xx_monitor(struct work_struct *work)
 			pr_err("ERROR: ACS\n");
 		if (TFA98XX_STATUSREG_WDS & val)
 			pr_err("ERROR: WDS\n");
-
-#ifndef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-08-13, changed by NXP suggestion.*/
-		if (TFA98XX_STATUSREG_SPKS & val)
-			pr_err("ERROR: SPKS\n");
-		if (!(TFA98XX_STATUSREG_SWS & val))
-			pr_err("ERROR: AMP_SWS\n");
-#endif
 
 		/* schedule init now if the clocks are up and stable */
 		if ((val & TFA98XX_STATUS_UP_MASK) == TFA98XX_STATUS_UP_MASK)
@@ -566,16 +533,9 @@ int tfa98xx_get_profile_ctl(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct tfa98xx *tfa98xx = snd_soc_codec_get_drvdata(codec);
-
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_lock(&tfa98xx->dsp_init_lock);
-#endif
 	ucontrol->value.integer.value[0] = tfa98xx->profile;
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_unlock(&tfa98xx->dsp_init_lock);
-#endif
 	return 0;
 }
 
@@ -591,23 +551,14 @@ int tfa98xx_set_profile_ctl(struct snd_kcontrol *kcontrol,
     if (tfa98xx->profile == ucontrol->value.integer.value[0])
      return 0;
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_lock(&tfa98xx->dsp_init_lock);
-#endif
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-11,change for wave profile */
     tfa98xx->profile = ucontrol->value.integer.value[0];
 	if (tfa98xx_is_amp_running(tfa98xx)) {
 		tfaContWriteProfile(tfa98xx, tfa98xx->profile, prof->vstep);
 	}
     pr_debug("%s WaveEnable %d profile %d",__func__,tfa98xx->WaveEnable,tfa98xx->profile);
-#endif
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_unlock(&tfa98xx->dsp_init_lock);
-#endif
 	return 0;
 }
 
@@ -635,16 +586,10 @@ int tfa98xx_get_vol_ctl(struct snd_kcontrol *kcontrol,
 	int index = tfa98xx->profile;
 	struct tfaprofile *prof = &profiles[index];
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_lock(&tfa98xx->dsp_init_lock);
-#endif
 	ucontrol->value.integer.value[0] = prof->vsteps - prof->vstep - 1;
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_unlock(&tfa98xx->dsp_init_lock);
-#endif
 	return 0;
 }
 
@@ -660,10 +605,7 @@ int tfa98xx_set_vol_ctl(struct snd_kcontrol *kcontrol,
 	if (prof->vstep == prof->vsteps - ucontrol->value.integer.value[0] - 1)
 		return 0;
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_lock(&tfa98xx->dsp_init_lock);
-#endif
 	prof->vstep = prof->vsteps - ucontrol->value.integer.value[0] - 1;
 
 	if (prof->vstep < 0)
@@ -673,10 +615,7 @@ int tfa98xx_set_vol_ctl(struct snd_kcontrol *kcontrol,
 		tfaContWriteProfile(tfa98xx, tfa98xx->profile, prof->vstep);
 	}
 
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-06,add lock */
 	mutex_unlock(&tfa98xx->dsp_init_lock);
-#endif
 	return 1;
 }
 
@@ -842,11 +781,7 @@ static int tfa98xx_probe(struct snd_soc_codec *codec)
 	snd_soc_add_codec_controls(codec, tfa98xx_controls, ARRAY_SIZE(tfa98xx_controls));
 
 	dev_info(codec->dev, "tfa98xx codec registered");
-#ifdef VENDOR_EDIT
-	//zhiguang.su add
 	g_tfa98xx = tfa98xx;
-	//zhiguang.su add end
-#endif	
 	return 0;
 }
 
@@ -906,8 +841,6 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 		goto wq_fail;
 	}
 
-#ifdef VENDOR_EDIT
-	//zhiguang.su add 1218
 	tfa98xx->rst_gpio = of_get_named_gpio(np, "reset_gpio",0);
 	ret = gpio_request(tfa98xx->rst_gpio, "tfa reset gpio");
 	if (ret < 0)
@@ -916,11 +849,8 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 		goto gpio_fail;
 	}
 	gpio_direction_output(tfa98xx->rst_gpio, 1);
-/*zhiguang.su@MultiMedia.AudioDrv on 2015-05-18,optimize for speed */
 	udelay(100);
 	gpio_direction_output(tfa98xx->rst_gpio, 0);
-	//zhiguang.su add end 1218
-#endif
 
 	INIT_WORK(&tfa98xx->init_work, tfa98xx_dsp_init);
 
@@ -934,27 +864,20 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 		goto codec_fail;
 	}
 
-#ifdef VENDOR_EDIT
-/*zhiguang.su@MultiMedia.AudioDrv on 2015-05-18,optimize for speed */
 	pr_debug("tfa98xx probed successfully!");
-#endif
 
-
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-05-29, add for smart pa calibtation*/
 	error = sysfs_create_file(&i2c->dev.kobj, &tfa98xx_state_attr.attr);
-    if(error < 0)
-    {
-        pr_err("%s sysfs_create_file tfa98xx_state_attr err.",__func__);
-    }
+	if(error < 0)
+	{
+        	pr_err("%s sysfs_create_file tfa98xx_state_attr err.",__func__);
+	}
 
-	error = sysfs_create_file(&i2c->dev.kobj, &tfa98xx_Log_state_attr.attr);
-    if(error < 0)
-    {
+		error = sysfs_create_file(&i2c->dev.kobj, &tfa98xx_Log_state_attr.attr);
+	if(error < 0)
+	{
         pr_err("%s sysfs_create_file tfa98xx_Log_state_attr err.",__func__);
-    }
+	}
 
-#endif
 	return ret;
 
 codec_fail:
