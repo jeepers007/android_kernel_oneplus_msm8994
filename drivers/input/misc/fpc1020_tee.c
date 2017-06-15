@@ -53,8 +53,6 @@
 #include <linux/notifier.h>
 #endif
 
-#include <linux/project_info.h>
-
 #define FPC1020_RESET_LOW_US 1000
 #define FPC1020_RESET_HIGH1_US 100
 #define FPC1020_RESET_HIGH2_US 1250
@@ -321,20 +319,6 @@ static ssize_t report_home_set(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR(report_home, S_IWUSR, NULL, report_home_set);
-
-static ssize_t update_info_set(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	//struct  fpc1020_data *fpc1020 = dev_get_drvdata(dev);
-
-	if (!strncmp(buf, "n", strlen("n")))
-	{
-		push_component_info(FINGERPRINTS,"N/A" , "N/A");
-	}
-
-	return count;
-}
-static DEVICE_ATTR(update_info, S_IWUSR, NULL, update_info_set);
 
 static ssize_t screen_state_get(struct device* device,
 			     struct device_attribute* attribute,
@@ -844,7 +828,6 @@ static struct attribute *attributes[] = {
 	//&dev_attr_hw_reset.attr,
 	&dev_attr_irq.attr,
 	&dev_attr_report_home.attr,
-	&dev_attr_update_info.attr,
 	&dev_attr_screen_state.attr,
 	
 	&dev_attr_pinctl_set.attr,
@@ -1180,15 +1163,6 @@ static int fpc1020_probe(struct spi_device *spi)
 	
 	gpio_set_value(fpc1020->rst_gpio, 1);
 	udelay(FPC1020_RESET_HIGH2_US);
-	
-    if(gpio_is_valid(fpc1020->fp2050_gpio))
-    {
-        push_component_info(FINGERPRINTS,"fpc1150" , gpio_get_value(fpc1020->fp2050_gpio)?(gpio_get_value(fpc1020->vendor_gpio)?"(FPC+2050)DT" : "(FPC+2050)CT"):(gpio_get_value(fpc1020->vendor_gpio)?"(FPC)DT" : "(FPC)CT"));
-    }
-    else
-    {
-        push_component_info(FINGERPRINTS,"fpc1150" , gpio_get_value(fpc1020->vendor_gpio)?"(FPC)DT" : "(FPC)CT");
-    }
 
 	dev_info(dev, "%s: ok\n", __func__);
 exit:

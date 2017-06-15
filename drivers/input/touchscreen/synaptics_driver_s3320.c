@@ -56,7 +56,6 @@
 
 #include "synaptics_redremote.h"
 #include <linux/boot_mode.h>
-#include <linux/project_info.h>
 #include "synaptics_baseline.h"
 /*------------------------------------------------Global Define--------------------------------------------*/
 
@@ -3114,8 +3113,6 @@ static int synaptics_ts_probe(struct i2c_client *client, const struct i2c_device
 	strcpy(ts->fw_name,"tp/14049/14049_FW_S3320_jdi.img");
 	strcpy(ts->test_limit_name,"tp/14049/14049_Limit_jdi.img");
 	TPD_DEBUG("synatpitcs_fw: fw_name = %s \n",ts->fw_name);
-
-	push_component_info(TP, ts->fw_id, ts->manu_name);
 
 	synaptics_wq = create_singlethread_workqueue("synaptics_wq");
 	if( !synaptics_wq ){

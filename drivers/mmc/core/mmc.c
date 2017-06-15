@@ -20,7 +20,6 @@
 #include <linux/mmc/mmc.h>
 #include <linux/pm_runtime.h>
 #include <linux/reboot.h>
-#include <linux/project_info.h>
 
 #include "core.h"
 #include "bus.h"
@@ -126,27 +125,6 @@ static int mmc_decode_cid(struct mmc_card *card)
 			mmc_hostname(card->host), card->csd.mmca_vsn);
 		return -EINVAL;
 	}
-#ifdef VENDOR_EDIT
-        //liochen,2015/12/09,Push emmc card information
-        if(!strncmp(mmc_hostname(card->host),"mmc0",4)){
-                switch(card->cid.manfid){
-                        case 0x11:
-                                manufactureid = "TOSHIBA";
-                                break;
-                        case 0x15:
-                                manufactureid = "SAMSUNG";
-                                break;
-                        case 0x45:
-                                manufactureid = "SANDISK";
-                                break;
-                        default:
-                                manufactureid = "unknown";
-                                break;
-                }
-                push_component_info(EMMC, manufactureid, card->cid.prod_name);
-        }
-#endif /*VENDOR_EDIT*/
-
 
 	return 0;
 }

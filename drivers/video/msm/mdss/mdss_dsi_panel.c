@@ -2492,12 +2492,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 		pr_info("%s:%d, panel version not specified\n", __func__, __LINE__);
 	else
 		pr_info("%s: Panel Version = %s\n", __func__, panel_version);
-
-	backlight_version = of_get_property(node, "qcom,mdss-dsi-backlight-version", NULL);
-	backlight_manufacture =of_get_property(node, "qcom,mdss-dsi-backlight-manufacture", NULL);
-
-	push_component_info(LCD, (char *)panel_version, (char *)panel_manufacture);
-	push_component_info(BACKLIGHT, (char *)backlight_version, (char *)backlight_manufacture);
 #endif
 
 

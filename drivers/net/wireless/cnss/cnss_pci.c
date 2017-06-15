@@ -56,7 +56,6 @@
 #endif
 
 //#ifdef VENDOR_EDIT
-#include <linux/project_info.h>
 static u32 fw_version;
 static uint evmFlag = 0;
 //#endif /* VENDOR_EDIT */
@@ -2757,11 +2756,6 @@ skip_ramdump:
 		pr_err("cnss: fw_image_setup sys file creation failed\n");
 		goto err_bus_reg;
 	}
-
-	//#ifdef VENDOR_EDIT
-	/* product information */
-	push_component_info(WCN, "QCA6164A", "QualComm");
-	//#endif /* VENDOR_EDIT */
 
 	pr_info("cnss: Platform driver probed successfully.\n");
 	return ret;
