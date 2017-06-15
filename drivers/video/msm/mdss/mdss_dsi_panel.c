@@ -58,7 +58,6 @@ static DEFINE_MUTEX(cabc_mutex);
 
 #ifdef VENDOR_EDIT  //gzm@oem add 2015-03-28
 
-#include <linux/project_info.h>
 #define ESD_TE_Check_On
 #ifdef ESD_TE_Check_On
 #include <linux/switch.h>
@@ -2410,8 +2409,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 #ifdef VENDOR_EDIT
 	static const char *panel_manufacture;
 	static const char *panel_version;
-	static const char *backlight_manufacture;
-	static const char *backlight_version;
 	panel_data = ctrl_pdata;
 #endif
 

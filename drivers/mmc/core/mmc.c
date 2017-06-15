@@ -79,7 +79,6 @@ static const struct mmc_fixup mmc_fixups[] = {
 static int mmc_decode_cid(struct mmc_card *card)
 {
 	u32 *resp = card->raw_cid;
-        char *manufactureid;
 
 	/*
 	 * The selection of the format here is based upon published
