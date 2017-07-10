@@ -228,7 +228,7 @@ static int msm_cpp_update_bandwidth(struct cpp_device *cpp_dev,
 
 	int rc;
 	struct msm_bus_paths *path;
-
+	cpp_dev->bus_idx = 3 - cpp_dev->bus_idx;
 	path = &(msm_cpp_bus_scale_data.usecase[cpp_dev->bus_idx]);
 	path->vectors[0].ab = ab;
 	path->vectors[0].ib = ib;
@@ -239,7 +239,6 @@ static int msm_cpp_update_bandwidth(struct cpp_device *cpp_dev,
 		pr_err("Fail bus scale update %d\n", rc);
 		return -EINVAL;
 	}
-	cpp_dev->bus_idx = 3 - cpp_dev->bus_idx;
 
 	return 0;
 }
@@ -361,7 +360,7 @@ static uint32_t msm_cpp_read(void __iomem *cpp_base)
 	uint32_t tmp, retry = 0;
 	do {
 		tmp = msm_camera_io_r(cpp_base + MSM_CPP_MICRO_FIFO_TX_STAT);
-	} while (((tmp & 0x2) == 0x0) && (retry++ < 10)) ;
+	} while (((tmp & 0x2) == 0x0) && (retry++ < 10));
 	if (retry < 10) {
 		tmp = msm_camera_io_r(cpp_base + MSM_CPP_MICRO_FIFO_TX_DATA);
 		CPP_DBG("Read data: 0%x\n", tmp);
@@ -696,10 +695,6 @@ static int cpp_init_mem(struct cpp_device *cpp_dev)
 	int rc = 0;
 
 	kref_init(&cpp_dev->refcount);
-	#ifndef VENDOR_EDIT
-	/*liuyan 2015/7/21 delete, memleak*/
-	//kref_get(&cpp_dev->refcount);
-	#endif
 	cpp_dev->client = msm_ion_client_create("cpp");
 
 	CPP_DBG("E\n");
@@ -1606,18 +1601,20 @@ static void msm_cpp_do_timeout_work(struct work_struct *work)
 	int32_t queue_len = 0;
 	struct msm_device_queue *queue = NULL;
 	struct msm_cpp_frame_info_t *processed_frame[MAX_CPP_PROCESSING_FRAME];
-	struct cpp_device *cpp_dev;
+	struct cpp_device *cpp_dev = cpp_timer.data.cpp_dev;
 
 	pr_info("cpp_timer_callback called. (jiffies=%lu)\n",
 		jiffies);
+	mutex_lock(&cpp_dev->mutex);
+
 	if (!work || cpp_timer.data.cpp_dev->state != CPP_STATE_ACTIVE) {
 		pr_err("Invalid work:%p or state:%d\n", work,
 			cpp_timer.data.cpp_dev->state);
-		return;
+		goto end;
 	}
 	if (!atomic_read(&cpp_timer.used)) {
 		pr_info("Delayed trigger, IRQ serviced\n");
-		return;
+		goto end;
 	}
 
 	disable_irq(cpp_timer.data.cpp_dev->irq->start);
@@ -1634,14 +1631,11 @@ static void msm_cpp_do_timeout_work(struct work_struct *work)
 
 	if (!atomic_read(&cpp_timer.used)) {
 		pr_info("Delayed trigger, IRQ serviced\n");
-		return;
+		goto end;
 	}
 
 	queue = &cpp_timer.data.cpp_dev->processing_q;
 	queue_len = queue->len;
-	cpp_dev = cpp_timer.data.cpp_dev;
-
-	mutex_lock(&cpp_dev->mutex);
 
 	if (cpp_dev->timeout_trial_cnt >=
 		cpp_dev->max_timeout_trial_cnt) {
@@ -1654,9 +1648,7 @@ static void msm_cpp_do_timeout_work(struct work_struct *work)
 		for (i = 0; i < MAX_CPP_PROCESSING_FRAME; i++)
 			cpp_timer.data.processed_frame[i] = NULL;
 		cpp_dev->timeout_trial_cnt = 0;
-		mutex_unlock(&cpp_dev->mutex);
-		pr_info("exit\n");
-		return;
+		goto end;
 	}
 
 	atomic_set(&cpp_timer.used, 1);
@@ -1700,7 +1692,9 @@ static void msm_cpp_do_timeout_work(struct work_struct *work)
 	}
 
 	cpp_timer.data.cpp_dev->timeout_trial_cnt++;
-	mutex_unlock(&cpp_timer.data.cpp_dev->mutex);
+
+end:
+	mutex_unlock(&cpp_dev->mutex);
 
 	pr_info("exit\n");
 	return;
@@ -1735,9 +1729,9 @@ static int msm_cpp_send_frame_to_hardware(struct cpp_device *cpp_dev,
 		queue_len = cpp_dev->processing_q.len;
 		spin_unlock_irqrestore(&cpp_timer.data.processed_frame_lock,
 			flags);
-		if (queue_len == 1) {
+		if (queue_len == 1)
 			atomic_set(&cpp_timer.used, 1);
-		}
+
 		CPP_DBG("Starting timer to fire in %d ms. (jiffies=%lu)\n",
 			CPP_CMD_TIMEOUT_MS, jiffies);
 		ret = mod_timer(&cpp_timer.cpp_timer,
@@ -1863,6 +1857,8 @@ static int msm_cpp_check_buf_type(struct msm_buf_mngr_info *buff_mgr_info,
 			/* More or equal bufs as Input buffer */
 			num_output_bufs = new_frame->batch_info.batch_size;
 		}
+		if (num_output_bufs > MSM_OUTPUT_BUF_CNT)
+			return 0;
 		for (i = 0; i < num_output_bufs; i++) {
 			new_frame->output_buffer_info[i].index =
 				buff_mgr_info->user_buf.buf_idx[i];
@@ -1888,7 +1884,7 @@ static int msm_cpp_cfg_frame(struct cpp_device *cpp_dev,
 	struct msm_buf_mngr_info buff_mgr_info, dup_buff_mgr_info;
 	int32_t in_fd;
 	int32_t i = 0, num_output_bufs = 1;
-	int32_t stripe_base = 0;
+	uint32_t stripe_base = 0;
 	uint32_t rd_pntr, wr_0_pntr, wr_1_pntr, wr_2_pntr, wr_3_pntr;
 	uint32_t wr_0_meta_data_wr_pntr, wr_1_meta_data_wr_pntr,
 		wr_2_meta_data_wr_pntr, wr_3_meta_data_wr_pntr;
@@ -1956,18 +1952,18 @@ static int msm_cpp_cfg_frame(struct cpp_device *cpp_dev,
 			new_frame->num_strips);
 		return -EINVAL;
 	}
-		if ((stripe_base + new_frame->num_strips * stripe_size + 1) !=
-			new_frame->msg_len) {
-			pr_err("Invalid frame message,len=%d,expected=%d\n",
-				new_frame->msg_len,
-				(stripe_base +
-				new_frame->num_strips * stripe_size + 1));
-			return -EINVAL;
-		}
+
+	if ((stripe_base + new_frame->num_strips * stripe_size + 1) !=
+		new_frame->msg_len) {
+		pr_err("Invalid frame message,len=%d,expected=%d\n",
+			new_frame->msg_len,
+			(stripe_base +
+			new_frame->num_strips * stripe_size + 1));
+		return -EINVAL;
 	}
 
 	if (cpp_dev->iommu_state != CPP_IOMMU_STATE_ATTACHED) {
-		pr_err("IOMMU is not attached\n");
+		pr_info("IOMMU is not attached\n");
 		return -EAGAIN;
 	}
 
@@ -2221,10 +2217,8 @@ static int msm_cpp_cfg(struct cpp_device *cpp_dev,
 	struct msm_camera_v4l2_ioctl_t *ioctl_ptr)
 {
 	struct msm_cpp_frame_info_t *frame = NULL;
-	struct msm_cpp_frame_info_t *u_frame_info =
-	  (struct msm_cpp_frame_info_t *)ioctl_ptr->ioctl_ptr;
+	struct msm_cpp_frame_info_t k_frame_info;
 	int32_t rc = 0;
-
 	if (copy_from_user(&k_frame_info,
 			(void __user *)ioctl_ptr->ioctl_ptr,
 			sizeof(k_frame_info)))
@@ -2240,7 +2234,7 @@ static int msm_cpp_cfg(struct cpp_device *cpp_dev,
 
 	ioctl_ptr->trans_code = rc;
 
-	if (copy_to_user((void __user *)u_frame_info->status, &rc,
+	if (copy_to_user((void __user *)k_frame_info.status, &rc,
 		sizeof(int32_t)))
 		pr_err("error cannot copy error\n");
 
@@ -2563,8 +2557,7 @@ STREAM_BUFF_END:
 		uint32_t identity;
 		struct msm_cpp_buff_queue_info_t *buff_queue_info;
 		CPP_DBG("VIDIOC_MSM_CPP_DEQUEUE_STREAM_BUFF_INFO\n");
-		if ((ioctl_ptr->len == 0) ||
-		    (ioctl_ptr->len > sizeof(uint32_t))) {
+		if (ioctl_ptr->len != sizeof(uint32_t)) {
 			mutex_unlock(&cpp_dev->mutex);
 			return -EINVAL;
 		}
@@ -2675,6 +2668,7 @@ STREAM_BUFF_END:
 				pr_err(" Fail to get clock index\n");
 				return -EINVAL;
 			}
+
 			if (cpp_dev->bus_master_flag)
 				rc = msm_cpp_update_bandwidth(cpp_dev,
 					clock_settings.avg,
@@ -3138,10 +3132,12 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 	struct msm_camera_v4l2_ioctl32_t up32_ioctl;
 	struct msm_cpp_clock_settings_t clock_settings;
 	struct msm_pproc_queue_buf_info k_queue_buf;
-	struct msm_cpp_stream_buff_info_t k_cpp_buff_info;
+	struct msm_cpp_stream_buff_info32_t k32_cpp_buff_info;
+	struct msm_cpp_stream_buff_info_t k64_cpp_buff_info;
 	struct msm_cpp_frame_info32_t k32_frame_info;
 	struct msm_cpp_frame_info_t k64_frame_info;
 	void __user *up = (void __user *)arg;
+	bool is_copytouser_req = true;
 
 	if (sd == NULL) {
 		pr_err("%s: Subdevice is NULL\n", __func__);
@@ -3278,23 +3274,27 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 	case VIDIOC_MSM_CPP_ENQUEUE_STREAM_BUFF_INFO32:
 	case VIDIOC_MSM_CPP_DELETE_STREAM_BUFF32:
 	{
-		struct msm_cpp_stream_buff_info32_t *u32_cpp_buff_info =
-		  (struct msm_cpp_stream_buff_info32_t *)kp_ioctl.ioctl_ptr;
+		if (kp_ioctl.len != sizeof(
+			struct msm_cpp_stream_buff_info32_t))
+			return -EINVAL;
+		else
+			kp_ioctl.len =
+				sizeof(struct msm_cpp_stream_buff_info_t);
 
-		k_cpp_buff_info.identity = u32_cpp_buff_info->identity;
-		k_cpp_buff_info.num_buffs = u32_cpp_buff_info->num_buffs;
-		k_cpp_buff_info.buffer_info =
-			compat_ptr(u32_cpp_buff_info->buffer_info);
-
-		kp_ioctl.ioctl_ptr = (void *)&k_cpp_buff_info;
-		if (is_compat_task()) {
-			if (kp_ioctl.len != sizeof(
-				struct msm_cpp_stream_buff_info32_t))
-				return -EINVAL;
-			else
-				kp_ioctl.len =
-				  sizeof(struct msm_cpp_stream_buff_info_t);
+		if (copy_from_user(&k32_cpp_buff_info,
+			(void __user *)kp_ioctl.ioctl_ptr,
+			sizeof(k32_cpp_buff_info))) {
+			pr_err("error: cannot copy user pointer\n");
+			return -EFAULT;
 		}
+
+		memset(&k64_cpp_buff_info, 0, sizeof(k64_cpp_buff_info));
+		k64_cpp_buff_info.identity = k32_cpp_buff_info.identity;
+		k64_cpp_buff_info.num_buffs = k32_cpp_buff_info.num_buffs;
+		k64_cpp_buff_info.buffer_info =
+			compat_ptr(k32_cpp_buff_info.buffer_info);
+		kp_ioctl.ioctl_ptr = (void *)&k64_cpp_buff_info;
+		is_copytouser_req = false;
 		if (cmd == VIDIOC_MSM_CPP_ENQUEUE_STREAM_BUFF_INFO32)
 			cmd = VIDIOC_MSM_CPP_ENQUEUE_STREAM_BUFF_INFO;
 		else if (cmd == VIDIOC_MSM_CPP_DELETE_STREAM_BUFF32)
@@ -3360,6 +3360,7 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 				kp_ioctl.len =
 					sizeof(struct msm_cpp_clock_settings_t);
 		}
+		is_copytouser_req = false;
 		cmd = VIDIOC_MSM_CPP_SET_CLOCK;
 		break;
 	}
@@ -3390,6 +3391,7 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 
 		kp_ioctl.ioctl_ptr = (void *)&k_queue_buf;
 		kp_ioctl.len = sizeof(struct msm_pproc_queue_buf_info);
+		is_copytouser_req = false;
 		cmd = VIDIOC_MSM_CPP_QUEUE_BUF;
 		break;
 	}
@@ -3410,6 +3412,7 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 		k64_frame_info.frame_id = k32_frame_info.frame_id;
 
 		kp_ioctl.ioctl_ptr = (void *)&k64_frame_info;
+		is_copytouser_req = false;
 		cmd = VIDIOC_MSM_CPP_POP_STREAM_BUFFER;
 		break;
 	}
@@ -3454,14 +3457,16 @@ static long msm_cpp_subdev_fops_compat_ioctl(struct file *file,
 		return -EINVAL;
 	}
 
-	up32_ioctl.id = kp_ioctl.id;
-	up32_ioctl.len = kp_ioctl.len;
-	up32_ioctl.trans_code = kp_ioctl.trans_code;
-	up32_ioctl.ioctl_ptr = ptr_to_compat(kp_ioctl.ioctl_ptr);
+	if (is_copytouser_req) {
+		up32_ioctl.id = kp_ioctl.id;
+		up32_ioctl.len = kp_ioctl.len;
+		up32_ioctl.trans_code = kp_ioctl.trans_code;
+		up32_ioctl.ioctl_ptr = ptr_to_compat(kp_ioctl.ioctl_ptr);
 
-	if (copy_to_user((void __user *)up, &up32_ioctl, sizeof(up32_ioctl)))
-		return -EFAULT;
-
+		if (copy_to_user((void __user *)up, &up32_ioctl,
+			sizeof(up32_ioctl)))
+			return -EFAULT;
+	}
 	return rc;
 }
 #endif
@@ -3814,3 +3819,4 @@ module_init(msm_cpp_init_module);
 module_exit(msm_cpp_exit_module);
 MODULE_DESCRIPTION("MSM CPP driver");
 MODULE_LICENSE("GPL v2");
+

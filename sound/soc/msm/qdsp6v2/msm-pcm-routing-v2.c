@@ -166,11 +166,6 @@ static void msm_pcm_routing_cfg_pp(int port_id, int copp_idx, int topology,
 		}
 		break;
 
-	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DTS_HPX:
-		pr_debug("%s: DTS_EAGLE_COPP_TOPOLOGY_ID\n", __func__);
-		msm_dts_eagle_init_post(port_id, copp_idx);
-		break;
-
 	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DIRAC:
         	pr_debug("%s: ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DIRAC\n", __func__);
         	dirac_port_id = port_id;
