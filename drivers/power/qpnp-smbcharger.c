@@ -37,15 +37,12 @@
 #include <linux/of_batterydata.h>
 #include <linux/msm_bcl.h>
 #include <linux/ktime.h>
+#include <linux/proc_fs.h>
 #if defined(CONFIG_FB)
 /* yangfangbiao@oneplus.cn,20150519  Add for reset charge current when screen is off */
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #endif/*CONFIG_FB*/
-
-#ifdef VENDOR_EDIT
-#include <linux/proc_fs.h>
-#endif
 
 /* Mask/Bit helpers */
 #define _SMB_MASK(BITS, POS) \
@@ -54,7 +51,6 @@
 		_SMB_MASK((LEFT_BIT_POS) - (RIGHT_BIT_POS) + 1, \
 				(RIGHT_BIT_POS))
 
-#ifdef VENDOR_EDIT
 #define AICL_INIT_FUNCTION_MASK BIT(7)
 
 static bool use_fake_temp = false;
@@ -137,7 +133,6 @@ typedef enum{
 		CV_BATTERY_TEMP_REGION__INVALID,
 }chg_cv_battery_temp_region_type;
 
-#endif
 
 /* Config registers */
 struct smbchg_regulator {
@@ -331,7 +326,7 @@ struct smbchg_chip {
 	struct mutex			usb_status_lock;
 	bool oem_lcd_is_on;
 	int lcd_on_iusb;
-#ifdef VENDOR_EDIT
+
 /*Modify for V2.4 charge standard */
 chg_cv_battery_temp_region_type mBatteryTempRegion;
 chg_charger_status_type charger_status;
@@ -383,15 +378,13 @@ int batt_health;
 bool is_power_changed;
 unsigned int aicl_current;
 bool time_out;
-#endif
+
 #if defined(CONFIG_FB)
 	/* yangfangbiao@oneplus.cn,20150519  Add for reset charge current when screen is off */
 	struct notifier_block fb_notif;
 #endif /*CONFIG_FB*/
 
-#ifdef VENDOR_EDIT
 	bool ship_mode;
-#endif
 
 };
 
@@ -477,7 +470,7 @@ module_param_named(
 			pr_debug_ratelimited(fmt, ##__VA_ARGS__);	\
 	} while (0)
 
-#ifdef VENDOR_EDIT
+
 struct smbchg_chip *g_chip;
 static int smbchg_charging_en(struct smbchg_chip *chip, bool en);
 static int get_prop_charger_voltage_now(struct smbchg_chip *chip);
@@ -491,11 +484,9 @@ static int smbchg_set_fastchg_current(struct smbchg_chip *chip,
 							int current_ma);
 static void qpnp_battery_temp_region_set(struct smbchg_chip *chip,
 			chg_cv_battery_temp_region_type batt_temp_region);
-#ifdef  VENDOR_EDIT //before battery profile init done,do not allow  soft AICL
+//before battery profile init done,do not allow  soft AICL
 extern int  load_battery_profile_done;
 extern int  load_battery_profile_done_allow_check_temp_set_current;
-#endif
-#endif
 
 static int smbchg_read(struct smbchg_chip *chip, u8 *val,
 			u16 addr, int count)
@@ -1060,7 +1051,6 @@ static int get_prop_batt_capacity(struct smbchg_chip *chip)
 	return capacity;
 }
 
-#ifdef  VENDOR_EDIT
 #define MAX_COUNT	500
 #define SOFT_AICL_VOL	4465   //4555
 #define SOFT_AICL_DELAY_MS 2000
@@ -1069,10 +1059,9 @@ static int soft_aicl(struct smbchg_chip *chip)
 {
 	int i, current_ma,chg_vol;
 	pr_debug("soft aicl s2:%s\n", __func__);
-#ifdef  VENDOR_EDIT //before battery profile init done,do not allow  soft AICL
+//before battery profile init done,do not allow  soft AICL
 	if(load_battery_profile_done != 99)
 		return 0;
-#endif
 	//qpnp_chg_vinmin_set(chip, 4440);
 	smbchg_set_high_usb_chg_current(chip, 400);
 	smbchg_set_fastchg_current(chip, chip->target_fastchg_current_ma);
@@ -1187,10 +1176,9 @@ static void smbchg_soft_aicl_work(struct work_struct *work)
 				soft_aicl_work.work);
 
 	soft_aicl(chip);
-#ifdef VENDOR_EDIT      //after aicl Ibattery has been changed ,should check and set again
+//after aicl Ibattery has been changed ,should check and set again
 	chip->is_power_changed =true;
 	qpnp_check_battery_temp(chip);
-#endif
 }
 
 static ssize_t test_chg_vol_show(struct device *dev,
@@ -1252,16 +1240,12 @@ static ssize_t test_authentic_store(struct device *dev,struct device_attribute *
 
 static DEVICE_ATTR(test_authentic, S_IRUGO | S_IWUSR, test_authentic_show, test_authentic_store);
 
-#endif
-
 #define DEFAULT_BATT_TEMP		200
 static int get_prop_batt_temp(struct smbchg_chip *chip)
 {
 	int temp, rc;
-#ifdef	VENDOR_EDIT
 	if(use_fake_temp)
 		return fake_temp;
-#endif
 
 	rc = get_property_from_fg(chip, POWER_SUPPLY_PROP_TEMP, &temp);
 	if (rc) {
@@ -1310,7 +1294,7 @@ static int get_prop_batt_voltage_max_design(struct smbchg_chip *chip)
 	}
 	return uv;
 }
-#ifdef  VENDOR_EDIT //if battery is not present , report POWER_SUPPLY_HEALTH_UNKNOWN
+//if battery is not present , report POWER_SUPPLY_HEALTH_UNKNOWN
 static int get_prop_batt_health(struct smbchg_chip *chip)
 	{
 		int temp;
@@ -1328,22 +1312,6 @@ static int get_prop_batt_health(struct smbchg_chip *chip)
 		}
 	}
 
-
-#else
-static int get_prop_batt_health(struct smbchg_chip *chip)
-{
-	if (chip->batt_hot)
-		return POWER_SUPPLY_HEALTH_OVERHEAT;
-	else if (chip->batt_cold)
-		return POWER_SUPPLY_HEALTH_COLD;
-	else if (chip->batt_warm)
-		return POWER_SUPPLY_HEALTH_WARM;
-	else if (chip->batt_cool)
-		return POWER_SUPPLY_HEALTH_COOL;
-	else
-		return POWER_SUPPLY_HEALTH_GOOD;
-}
-#endif
 static const int usb_current_table[] = {
 	300,
 	400,
@@ -1419,13 +1387,9 @@ static int calc_thermal_limited_current(struct smbchg_chip *chip,
 						int current_ma)
 {
 	int therm_ma;
-#ifdef VENDOR_EDIT//when thermal  system temperature level is 3,do not suspend usb,just set iusb to 300MA
+//when thermal  system temperature level is 3,do not suspend usb,just set iusb to 300MA
 	if (chip->therm_lvl_sel > 0
 			&& chip->therm_lvl_sel <= (chip->thermal_levels - 1)) {
-#else
-if (chip->therm_lvl_sel > 0
-			&& chip->therm_lvl_sel < (chip->thermal_levels - 1)) {
-#endif
 		/*
 		 * consider thermal limit only when it is active and not at
 		 * the highest level
@@ -1626,15 +1590,12 @@ static int smbchg_battchg_en(struct smbchg_chip *chip, bool enable,
 		*changed = false;
 		goto out;
 	}
-#ifdef  VENDOR_EDIT
 	/* yangfangbiao@oneplus.cn,20150710 Add to  avoid  enable charge when temp is  unnormal or charge time out */
 	pr_err("chg_en %s:enable =%d\n",__func__, enable);
 	rc = smbchg_charging_en(chip,
 	(!battchg_disabled
 	&& chip->time_out != true));
-#else
-	rc = smbchg_charging_en(chip, !battchg_disabled);
-#endif
+
 	if (rc < 0) {
 		dev_err(chip->dev,
 			"Couldn't configure batt chg: 0x%x rc = %d\n",
@@ -2128,23 +2089,11 @@ static int smbchg_sw_esr_pulse_en(struct smbchg_chip *chip, bool en)
 
 #define USB_AICL_CFG				0xF3
 #define AICL_EN_BIT				BIT(2)
-#ifdef VENDOR_EDIT  //disable aicl
+//disable aicl
 static void smbchg_rerun_aicl(struct smbchg_chip *chip)
 {
 //do nothing ,we do not use hw aicl
 }
-#else
-static void smbchg_rerun_aicl(struct smbchg_chip *chip)
-{
-	pr_smb(PR_STATUS, "Rerunning AICL...\n");
-	smbchg_sec_masked_write(chip, chip->usb_chgpth_base + USB_AICL_CFG,
-			AICL_EN_BIT, 0);
-	/* Add a delay so that AICL successfully clears */
-	msleep(50);
-	smbchg_sec_masked_write(chip, chip->usb_chgpth_base + USB_AICL_CFG,
-			AICL_EN_BIT, AICL_EN_BIT);
-}
-#endif
 
 static void taper_irq_en(struct smbchg_chip *chip, bool en)
 {
@@ -2760,7 +2709,7 @@ static int force_dcin_icl_write(void *data, u64 val)
 DEFINE_SIMPLE_ATTRIBUTE(force_dcin_icl_ops, NULL,
 		force_dcin_icl_write, "0x%02llx\n");
 
-#ifdef VENDOR_EDIT//add shipmode
+//add shipmode
 
 #ifdef CONFIG_PROC_FS
 
@@ -2784,7 +2733,6 @@ static const struct file_operations proc_ship_mode_operations = {
 };
 
 
-#endif
 #endif
 
 
@@ -2853,29 +2801,9 @@ static int smbchg_system_temp_level_set(struct smbchg_chip *chip,
 	mutex_lock(&chip->current_change_lock);
 	prev_therm_lvl = chip->therm_lvl_sel;
 	chip->therm_lvl_sel = lvl_sel;
-#ifdef VENDOR_EDIT	//when thermal  system temperature level is 3,do not suspend usb,just set iusb to 300MA
+//when thermal  system temperature level is 3,do not suspend usb,just set iusb to 300MA
 	//do nothing
-#else
-	if (chip->therm_lvl_sel == (chip->thermal_levels - 1)) {
-		/*
-		 * Disable charging if highest value selected by
-		 * setting the DC and USB path in suspend
-		 */
-		rc = smbchg_dc_en(chip, false, REASON_THERMAL);
-		if (rc < 0) {
-			dev_err(chip->dev,
-				"Couldn't set dc suspend rc %d\n", rc);
-			goto out;
-		}
-		rc = smbchg_usb_en(chip, false, REASON_THERMAL);
-		if (rc < 0) {
-			dev_err(chip->dev,
-				"Couldn't set usb suspend rc %d\n", rc);
-			goto out;
-		}
-		goto out;
-	}
-#endif
+
 	rc = smbchg_set_thermal_limited_usb_current_max(chip,
 					chip->usb_target_current_ma);
 	rc = smbchg_set_thermal_limited_dc_current_max(chip,
@@ -3268,10 +3196,9 @@ static void smbchg_cc_esr_wa_check(struct smbchg_chip *chip)
 	pr_smb(PR_STATUS, "Raising charge current for ESR pulse\n");
 	smbchg_relax(chip, PM_ESR_PULSE);
 	smbchg_sw_esr_pulse_en(chip, false);
-#ifdef VENDOR_EDIT      //after esr pulse en ,check temperature set current again
+//after esr pulse en ,check temperature set current again
 	chip->is_power_changed =true;
 	qpnp_check_battery_temp(chip);
-#endif
 }
 
 static void smbchg_soc_changed(struct smbchg_chip *chip)
@@ -3562,10 +3489,6 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 	union power_supply_propval prop = {0,};
 	int rc, current_limit = 0, soc;
 	static int pre_current_limit_value = 0;
-#ifndef VENDOR_EDIT
-	enum power_supply_type usb_supply_type;
-	char *usb_type_name = "null";
-#endif
 
 	if (chip->bms_psy_name)
 		chip->bms_psy =
@@ -3610,7 +3533,6 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 	if(0!=current_limit)
 	pr_err("current_limit = %d\n", current_limit);
 	pr_smb(PR_MISC, "current_limit = %d\n", current_limit);
-#ifdef VENDOR_EDIT
 	if (prop.intval <= 2  && get_prop_batt_present(chip)) {
 		//smbchg_charging_en(chip, 0);
 		pre_current_limit_value=0;  //charger removed,set pre_current_limit_value 0
@@ -3636,31 +3558,6 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 		pre_current_limit_value = current_limit;
 		mutex_unlock(&chip->current_change_lock);
 	}
-#endif
-
-#ifndef VENDOR_EDIT
- //use oem temp control logic
-	read_usb_type(chip, &usb_type_name, &usb_supply_type);
-	if (usb_supply_type != POWER_SUPPLY_TYPE_USB)
-		goto  skip_current_for_non_sdp;
-
-	pr_smb(PR_MISC, "usb type = %s current_limit = %d\n",
-			usb_type_name, current_limit);
-	mutex_lock(&chip->current_change_lock);
-	if (current_limit != chip->usb_target_current_ma) {
-		pr_smb(PR_STATUS, "changed current_limit = %d\n",
-				current_limit);
-		chip->usb_target_current_ma = current_limit;
-		rc = smbchg_set_thermal_limited_usb_current_max(chip,
-				current_limit);
-		if (rc < 0)
-			dev_err(chip->dev,
-				"Couldn't set usb current rc = %d\n", rc);
-	}
-	mutex_unlock(&chip->current_change_lock);
-
-skip_current_for_non_sdp:
-#endif
 
 	smbchg_vfloat_adjust_check(chip);
 
@@ -3727,10 +3624,10 @@ struct regulator_ops smbchg_otg_reg_ops = {
 #define USBIN_ADAPTER_9V		0x3
 #define USBIN_ADAPTER_5V_9V_UNREG	0x5
 #define HVDCP_EN_BIT			BIT(3)
-#ifdef VENDOR_EDIT  /* modified for one of moto charger can not charge */
+/* modified for one of moto charger can not charge */
 #define HVDCP_ADAPTER_SEL_BIT4  BIT(4)
 #define HVDCP_ADAPTER_SEL_BIT5  BIT(5)
-#endif
+
 static int smbchg_external_otg_regulator_enable(struct regulator_dev *rdev)
 {
 	bool changed;
@@ -4192,12 +4089,6 @@ static void smbchg_hvdcp_det_work(struct work_struct *work)
 		hvdcp_sel = USBIN_HVDCP_SEL_BIT;
 
 	if ((reg & hvdcp_sel) && is_usb_present(chip)) {
-#ifndef VENDOR_EDIT
-		pr_smb(PR_MISC, "setting usb psy type = %d\n",
-				POWER_SUPPLY_TYPE_USB_HVDCP);
-		power_supply_set_supply_type(chip->usb_psy,
-				POWER_SUPPLY_TYPE_USB_HVDCP);
-#endif
 		if (chip->psy_registered)
 			power_supply_changed(&chip->batt_psy);
 		smbchg_aicl_deglitch_wa_check(chip);
@@ -4223,12 +4114,6 @@ static void handle_usb_removal(struct smbchg_chip *chip)
 	if (chip->usb_psy) {
 		pr_smb(PR_MISC, "setting usb psy type = %d\n",
 				POWER_SUPPLY_TYPE_UNKNOWN);
-#ifndef VENDOR_EDIT
-		power_supply_set_supply_type(chip->usb_psy,
-				POWER_SUPPLY_TYPE_UNKNOWN);
-		pr_smb(PR_MISC, "setting usb psy present = %d\n",
-				chip->usb_present);
-#endif
 		power_supply_set_present(chip->usb_psy, chip->usb_present);
 		pr_smb(PR_MISC, "setting usb psy allow detection 0\n");
 		power_supply_set_allow_detection(chip->usb_psy, 0);
@@ -4249,13 +4134,6 @@ static void handle_usb_removal(struct smbchg_chip *chip)
 	}
 	chip->parallel.enabled_once = false;
 	chip->vbat_above_headroom = false;
-/* david.liu@oneplus.tw,20151217  Fix FLOATED_CHARGER can't charge */
-#ifndef VENDOR_EDIT
-	rc = smbchg_masked_write(chip, chip->usb_chgpth_base + CMD_IL,
-			ICL_OVERRIDE_BIT, 0);
-	if (rc < 0)
-		pr_err("Couldn't set override rc = %d\n", rc);
-#endif
 }
 
 static bool is_src_detect_high(struct smbchg_chip *chip)
@@ -4274,11 +4152,7 @@ static bool is_src_detect_high(struct smbchg_chip *chip)
 #define HVDCP_NOTIFY_MS		2500
 #define DEFAULT_WALL_CHG_MA	1800
 /* david.liu@oneplus.tw,20151217  Modify the default intput current to 500mA for SDP */
-#ifdef VENDOR_EDIT
 #define DEFAULT_SDP_MA		500
-#else
-#define DEFAULT_SDP_MA		100
-#endif
 #define DEFAULT_CDP_MA		1500
 static void handle_usb_insertion(struct smbchg_chip *chip)
 {
@@ -4288,9 +4162,7 @@ static void handle_usb_insertion(struct smbchg_chip *chip)
 	char *usb_type_name = "null";
 
 	pr_smb(PR_STATUS, "triggered\n");
-#ifdef VENDOR_EDIT
 	smbchg_charging_en(chip, 1);// usb plug in agin ,enable charge
-#endif
 	/* usb inserted */
 	read_usb_type(chip, &usb_type_name, &usb_supply_type);
 	pr_smb(PR_STATUS,
@@ -4300,9 +4172,6 @@ static void handle_usb_insertion(struct smbchg_chip *chip)
 	if (chip->usb_psy) {
 		pr_smb(PR_MISC, "setting usb psy type = %d\n",
 				usb_supply_type);
-#ifndef VENDOR_EDIT
-		power_supply_set_supply_type(chip->usb_psy, usb_supply_type);
-#endif
 		pr_smb(PR_MISC, "setting usb psy present = %d\n",
 				chip->usb_present);
 		power_supply_set_present(chip->usb_psy, chip->usb_present);
@@ -4539,10 +4408,8 @@ static enum power_supply_property smbchg_battery_properties[] = {
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
-#ifdef VENDOR_EDIT
 	POWER_SUPPLY_PROP_CHARGE_NOW,
 	POWER_SUPPLY_PROP_CHG_PROTECT_STATUS,
-#endif
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
@@ -4646,10 +4513,8 @@ static int get_prop_chg_protect_status(struct smbchg_chip *chip)
 {
 	int charger_present = 0;
 	int temp;
-#ifdef	VENDOR_EDIT
 		if(use_fake_authentic)
 			return fake_authentic;
-#endif
 	//chg_done_status = chip->chg_done;
 	charger_present = is_usb_present(chip) | is_dc_present(chip);
 	if (!charger_present)
@@ -4685,7 +4550,7 @@ static int smbchg_battery_get_property(struct power_supply *psy,
 	switch (prop) {
 	case POWER_SUPPLY_PROP_STATUS:
 		val->intval = get_prop_batt_status(chip);
-#ifdef  VENDOR_EDIT /* if battery full but capacity not 100%,report status full*/
+/* if battery full but capacity not 100%,report status full*/
 		if ((true==chip->chg_done || chip->recharge_status==true)
 			&&(qpnp_battery_temp_region_get(chip) == CV_BATTERY_TEMP_REGION__LITTLE_COOL
 			|| qpnp_battery_temp_region_get(chip) == CV_BATTERY_TEMP_REGION__NORMAL
@@ -4693,8 +4558,6 @@ static int smbchg_battery_get_property(struct power_supply *psy,
 			|| qpnp_battery_temp_region_get(chip) == CV_BATTERY_TEMP_REGION__COOL)
 			&& (90 < get_prop_batt_capacity(chip)))
 			val->intval = POWER_SUPPLY_STATUS_FULL;
-#endif
-
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		val->intval = get_prop_batt_present(chip);
@@ -4751,14 +4614,12 @@ static int smbchg_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SAFETY_TIMER_ENABLE:
 		val->intval = chip->safety_timer_en;
 		break;
-#ifdef VENDOR_EDIT
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
 		val->intval = get_prop_charger_voltage_now(chip);
 		break;
 	case POWER_SUPPLY_PROP_CHG_PROTECT_STATUS:
 		val->intval = get_prop_chg_protect_status(chip);
 		break;
-#endif
 	case POWER_SUPPLY_PROP_FLASH_ACTIVE:
 		val->intval = chip->otg_pulse_skip_dis;
 		break;
@@ -4994,7 +4855,7 @@ static irqreturn_t chg_term_handler(int irq, void *_chip)
 		pr_smb(PR_INTERRUPT, "triggered: 0x%02x\n", reg);
 	}
 
-#ifdef VENDOR_EDIT /* charge done ,disable charge in software also*/
+/* charge done ,disable charge in software also*/
 	smbchg_parallel_usb_check_ok(chip);
 	if (chip->psy_registered)
 		power_supply_changed(&chip->batt_psy);
@@ -5006,25 +4867,6 @@ static irqreturn_t chg_term_handler(int irq, void *_chip)
 		pr_err("chg_term_handler: chip->chg_done\n");
 		smbchg_charging_en(chip, 0);
 	}
-#else
-	/*
-	 * If charging has not actually terminated, then this means that
-	 * either this is a manual call to chg_term_handler during
-	 * determine_initial_status(), or the charger has instantly restarted
-	 * charging.
-	 *
-	 * In either case, do not do the usual status updates here. If there
-	 * is something that needs to be updated, the recharge handler will
-	 * handle it.
-	 */
-	if (terminated) {
-		smbchg_parallel_usb_check_ok(chip);
-		if (chip->psy_registered)
-			power_supply_changed(&chip->batt_psy);
-		smbchg_charging_status_change(chip);
-		set_property_on_fg(chip, POWER_SUPPLY_PROP_CHARGE_DONE, 1);
-	}
-#endif
 	return IRQ_HANDLED;
 }
 
@@ -5589,7 +5431,7 @@ static int smbchg_hw_init(struct smbchg_chip *chip)
 		return rc;
 	}
 
-#ifdef VENDOR_EDIT  // init aicl
+// init aicl
 	rc = smbchg_sec_masked_write(chip,
 	chip->misc_base + MISC_TRIM_OPT_15_8,
 	AICL_INIT_FUNCTION_MASK|AICL_RERUN_MASK, AICL_RERUN_ON);
@@ -5606,21 +5448,15 @@ static int smbchg_hw_init(struct smbchg_chip *chip)
 					rc);
 			return rc;
 		}
-#endif
 	/*
 	 * Do not force using current from the register i.e. use auto
 	 * power source detect (APSD) mA ratings for the initial current values.
 	 *
 	 * If this is set, AICL will not rerun at 9V for HVDCPs
 	 */
-#ifdef VENDOR_EDIT  //  force using current from the register
+//  force using current from the register
 	rc = smbchg_masked_write(chip, chip->usb_chgpth_base + CMD_IL,
 			USE_REGISTER_FOR_CURRENT, USE_REGISTER_FOR_CURRENT);
-#else
-	rc = smbchg_masked_write(chip, chip->usb_chgpth_base + CMD_IL,
-			USE_REGISTER_FOR_CURRENT, 0);
-#endif
-
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't set input limit cmd rc=%d\n", rc);
 		return rc;
@@ -5699,14 +5535,13 @@ static int smbchg_hw_init(struct smbchg_chip *chip)
 		dev_err(chip->dev, "Couldn't set usb_chgpth cfg rc=%d\n", rc);
 		return rc;
 	}
-#ifdef VENDOR_EDIT /* modified for one of moto charger can not charge */
+/* modified for one of moto charger can not charge */
     rc = smbchg_sec_masked_write(chip, chip->usb_chgpth_base + CHGPTH_CFG,
 		HVDCP_EN_BIT | HVDCP_ADAPTER_SEL_BIT4 | HVDCP_ADAPTER_SEL_BIT5,0);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't set usb_chgpth hvdcp cfg rc=%d\n", rc);
 		return rc;
 	}
-#endif
 
 	check_battery_type(chip);
 
@@ -6666,7 +6501,6 @@ static int smbchg_check_chg_version(struct smbchg_chip *chip)
 	return rc;
 }
 
-#ifdef VENDOR_EDIT
 static chg_cv_battery_temp_region_type qpnp_battery_temp_region_get(struct smbchg_chip *chip)
 {
 	return chip->mBatteryTempRegion;
@@ -6701,11 +6535,8 @@ get_prop_charger_voltage_now(struct smbchg_chip *chip)
 {
 	int rc = 0;
 	struct qpnp_vadc_result results;
-#ifdef   VENDOR_EDIT
 		if(use_fake_chgvol)
 			return fake_chgvol;
-#endif
-
 	if (chip->revision == 0 ) {
 		pr_err("vchg reading not supported for 1.0 rc=%d\n", rc);
 		return 0;
@@ -7962,9 +7793,7 @@ bool get_oem_charge_done_status(void)/* yangfangbiao@oneplus.cn, 2015/05/15,add 
 {
    return g_chip->chg_done;
 }
-#endif /*VENDOR_EDIT*/
 
-#ifdef VENDOR_EDIT
 #ifdef CONFIG_SET_PMI8994_RESET_TYPE
 /*
 Add by yangrujin@bsp 2015/7/21, avoid handset goto unkown mode without usb port and not reboot in aging test
@@ -8058,7 +7887,6 @@ static int set_pmi_reset_type(const char *val, struct kernel_param *kp)
 
 module_param_call(pmi_reset_type, set_pmi_reset_type,
             get_pmi_reset_type, &pmi_reset_type, 0664);
-#endif
 #endif
 
 static int smbchg_probe(struct spmi_device *spmi)
@@ -8204,7 +8032,6 @@ static int smbchg_probe(struct spmi_device *spmi)
 
 	dump_regs(chip);
 
-#ifdef VENDOR_EDIT
 	g_chip = chip;
 
 	qpnp_charge_info_init(chip);
@@ -8230,7 +8057,7 @@ static int smbchg_probe(struct spmi_device *spmi)
 			pr_err("%s: creat test vbat file failed ret = %d\n",
 						__func__, rc);
 		}
-#endif
+
 #if defined(CONFIG_FB)
 		/* yangfangbiao@oneplus.cn,20150519  Add for reset charge current when screen is off */
 		chip->fb_notif.notifier_call = fb_notifier_callback;
@@ -8243,13 +8070,13 @@ static int smbchg_probe(struct spmi_device *spmi)
 
 	create_debugfs_entries(chip);
 
-#ifdef VENDOR_EDIT//add shipmode
+//add shipmode
 #ifdef CONFIG_PROC_FS
 	if (!proc_create("ship_mode", S_IFREG | S_IWUSR | S_IRUGO, NULL,
 		&proc_ship_mode_operations))
 	pr_err("Failed to register proc interface\n");
 #endif
-#endif
+
 
 	dev_info(chip->dev,
 		"SMBCHG successfully probe Charger version=%s Revision DIG:%d.%d ANA:%d.%d batt=%d dc=%d usb=%d\n",
@@ -8275,12 +8102,10 @@ static int smbchg_remove(struct spmi_device *spmi)
 	struct smbchg_chip *chip = dev_get_drvdata(&spmi->dev);
 
 	debugfs_remove_recursive(chip->debug_root);
-
-#ifdef VENDOR_EDIT
 	device_remove_file(chip->dev, &dev_attr_test_chg_vol);
 	device_remove_file(chip->dev, &dev_attr_test_temp);
 	device_remove_file(chip->dev, &dev_attr_test_authentic);
-#endif
+
 #if defined(CONFIG_FB)
 		/* yangfangbiao@oneplus.cn,20150519  Add for reset charge current when screen is off */
 		if (fb_unregister_client(&chip->fb_notif))
@@ -8296,7 +8121,6 @@ static int smbchg_remove(struct spmi_device *spmi)
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
 static void smbchg_shut_down(struct spmi_device *spmi)
 {
 #ifdef CONFIG_PROC_FS
@@ -8316,7 +8140,6 @@ static void smbchg_shut_down(struct spmi_device *spmi)
 #endif
 
 }
-#endif
 
 static const struct dev_pm_ops smbchg_pm_ops = {
 };

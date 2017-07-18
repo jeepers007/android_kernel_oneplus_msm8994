@@ -191,7 +191,6 @@ static void core_temp_notify(enum thermal_trip_type type,
 	complete(&sampling_completion);
 }
 
-#ifdef VENDOR_EDIT
 /* ic, provide pcost based on requested frequency and temperature */
 unsigned int power_cost_at_freq_at_temp(
 	unsigned int cpu,
@@ -221,7 +220,6 @@ unsigned int power_cost_at_freq_at_temp(
 	return 0;
 }
 EXPORT_SYMBOL(power_cost_at_freq_at_temp);
-#endif
 
 static void repopulate_stats(int cpu)
 {
