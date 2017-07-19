@@ -6049,8 +6049,7 @@ static int fg_setup_memif_offset(struct fg_chip *chip)
 		return rc;
 	}
 
-	switch (chip->revision[DIG_MAJOR]);
-	switch (dig_major) {
+	switch (chip->revision[DIG_MAJOR]) {
 	case DIG_REV_8994_1:
 	case DIG_REV_8994_2:
 		chip->offset = offset[0].address;
