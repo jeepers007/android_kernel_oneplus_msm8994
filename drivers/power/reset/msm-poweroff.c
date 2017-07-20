@@ -482,4 +482,3 @@ static int __init msm_restart_init(void)
 	return platform_driver_register(&msm_restart_driver);
 }
 device_initcall(msm_restart_init);
-

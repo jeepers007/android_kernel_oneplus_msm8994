@@ -5844,4 +5844,3 @@ module_exit(qpnp_chg_exit);
 MODULE_DESCRIPTION("QPNP charger driver");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:" QPNP_CHARGER_DEV_NAME);
-
