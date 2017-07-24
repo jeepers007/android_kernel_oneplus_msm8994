@@ -96,6 +96,11 @@ enum Tfa98xx_DMEM {
 	Tfa98xx_DMEM_IOMEM = 3,
 };
 
+enum Tfa98xx_Mode {
+	Tfa98xx_Mode_Normal = 0,
+	Tfa98xx_Mode_RCV
+};
+
 enum Tfa98xx_Mute {
 	Tfa98xx_Mute_Off,
 	Tfa98xx_Mute_Digital,

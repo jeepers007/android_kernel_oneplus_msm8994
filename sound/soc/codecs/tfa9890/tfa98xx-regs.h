@@ -154,6 +154,12 @@
 /**  AudioReg Register ($04) *************************************************/
 
 #define TFA98XX_AUDIOREG           0x04
+#define TFA98XX_AUDIOREG_RCV             (0x1<<2)
+#define TFA98XX_AUDIOREG_RCV_POS         2
+#define TFA98XX_AUDIOREG_RCV_LEN         1
+#define TFA98XX_AUDIOREG_RCV_MAX         1
+#define TFA98XX_AUDIOREG_RCV_MSK         0x4
+
 #define TFA98XX_AUDIOREG_CHS12           (0x3<<3)
 #define TFA98XX_AUDIOREG_CHS12_POS       3
 #define TFA98XX_AUDIOREG_CHS12_LEN       2

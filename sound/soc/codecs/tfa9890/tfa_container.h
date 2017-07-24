@@ -71,8 +71,11 @@ enum nxpTfaDescriptorType {
 	dscRegister,	// register patch
 	dscString,	// ascii, zero terminated string
 	dscFile,	// filename + file contents
-	dscPatch, 	// patch file
+	dscPatch,	// patch file
 	dscMarker,	// marker to indicate end of a list
+	dscMode,	// mode support
+	dscCfMem,       // coolflux memory x,y,io
+	dscFilter,      // filter settings
 	dscBitfieldBase=0x80 // start of bitfield enums
 };
 
@@ -101,17 +104,17 @@ struct nxpTfaFileDsc {
 
 
 struct nxpTfaContainer {
-	char id[2];          	// "XX" : XX=type
-	char version[2];     	// "V_" : V=version, vv=subversion
-	char subversion[2];  	// "vv" : vv=subversion
-	u32 size;       	// data size in bytes following CRC
-	u32 CRC;        	// 32-bits CRC for following data
+	char id[2];		// "XX" : XX=type
+	char version[2];	// "V_" : V=version, vv=subversion
+	char subversion[2];	// "vv" : vv=subversion
+	u32 size;		// data size in bytes following CRC
+	u32 CRC;		// 32-bits CRC for following data
 	u16 rev;		// "extra chars for rev nr"
-	char customer[8];    	// “name of customer”
-	char application[8]; 	// “application name”
+	char customer[8];	// “name of customer”
+	char application[8];	// “application name”
 	char type[8];		// “application type name”
-	u16 ndev;	 	// "nr of device lists"
-	u16 nprof;	 	// "nr of profile lists"
+	u16 ndev;		// "nr of device lists"
+	u16 nprof;		// "nr of profile lists"
 	struct nxpTfaDescPtr index[]; // start of item index table
 } __attribute__((packed));
 
@@ -120,13 +123,13 @@ struct tfa_cnt_header {
 	char	version[2];     /* "V_" : V=version */
 	char	subversion[2];  // "vv" : vv=subversion
 	u32	size;		// data size in bytes following CRC
-	u32	CRC;        	// 32-bits CRC for following data
+	u32	CRC;		// 32-bits CRC for following data
 	u16	rev;
 	char	customer[8];    // “name of customer”
 	char	application[8]; // “application name”
 	char	type[8];	// “application type name”
-	u16	ndev;	 	// "nr of device lists"
-	u16	nprof;	 	// "nr of profile lists"
+	u16	ndev;		// "nr of device lists"
+	u16	nprof;		// "nr of profile lists"
 	struct nxpTfaDescPtr index[]; // start of item index table
 } __attribute__((packed));
 
@@ -161,6 +164,16 @@ struct nxpTfaPatch {
 typedef struct uint24 {
 	u8 b[3];
 } u24;
+
+/*
+ * coolflux direct memory access
+ */
+struct nxpTfaDspMem {
+	u8  type;         /* 0--3: p, x, y, iomem */
+	u16 address;      /* target address */
+	u8  size;	  /* data size in words */
+	s32 words[]; 	  /* payload  in signed 32bit integer (two's complement) */
+} __attribute__((packed));
 
 /*
  * the biquad coefficients for the API together with index in filter
@@ -206,6 +219,22 @@ struct nxpTfaFilter {
 	float gain;
 } __attribute__((packed));  //8 * float + int32 + byte == 37
 
+/**
+ * standalone filter data in container file
+ *  contains data for recalculation and payload data
+ */
+struct nxpTfaBiquadSettings {
+	int8_t index; 	/**< index determines destination type; anti-alias, integrator,eq */
+	uint8_t type;
+	float cutOffFreq;   // cut off frequency
+	float samplingFreq;
+	float rippleDb_leakage;     // rippleDb or integrator leakage
+	float rolloff;
+	uint8_t bytes[5*3];	// payload 5*24buts coeffs
+} __attribute__((packed));
+
+
+
 #define TFA98XX_MAX_EQ 10
 
 struct nxpTfaEqualizer {
@@ -223,7 +252,7 @@ struct nxpTfaEqualizer {
 
 struct nxpTfaEqualizerFile {
 	struct nxpTfaHeader hdr;
-	u8 samplerate; 				 // ==enum samplerates, assure 8 bits
+	u8 samplerate;				 // ==enum samplerates, assure 8 bits
 	struct nxpTfaFilter filter[TFA98XX_MAX_EQ];// note: API index counts from 1..10
 } __attribute__((packed));
 
@@ -295,13 +324,21 @@ struct nxpTfaRegpatch {
 } __attribute__((packed));
 
 /*
+ * Mode descriptor
+ */
+struct nxpTfaMode {
+	u32  value;	// mode value, maps to enum Tfa98xx_Mode
+} __attribute__((packed));
+
+
+/*
  * volumestep file
  */
 struct nxpTfaVolumeStepFile {
 	struct nxpTfaHeader hdr;
-	u8 vsteps;  	// can also be calulated from size+type
+	u8 vsteps;	// can also be calulated from size+type
 	u8 samplerate;	// ==enum samplerates, assure 8 bits
-	u8 payload; 	//start of variable length contents:N times volsteps
+	u8 payload;	//start of variable length contents:N times volsteps
 } __attribute__((packed));
 
 /*
@@ -309,9 +346,9 @@ struct nxpTfaVolumeStepFile {
  */
 struct nxpTfaVolumeStep2File {
 	struct nxpTfaHeader hdr;
-	u8 vsteps;  	// can also be calulated from size+type
-	u8 samplerate; 	// ==enum samplerates, assure 8 bits
-	struct nxpTfaVolumeStep2 vstep[]; 	//start of variable length contents:N times volsteps
+	u8 vsteps;	// can also be calulated from size+type
+	u8 samplerate;	// ==enum samplerates, assure 8 bits
+	struct nxpTfaVolumeStep2 vstep[];	//start of variable length contents:N times volsteps
 } __attribute__((packed));
 
 /*
@@ -416,7 +453,6 @@ int tfaContWriteProfile(struct tfa98xx *tfa98xx, int profile, int vstep);
 int tfaContWriteFilesProf(struct tfa98xx *tfa98xx, int profile, int vstep);
 int tfaContWriteFiles(struct tfa98xx *tfa98xx);
 int tfa98xx_dsp_write_drc(struct tfa98xx *tfa98xx, int len, const u8 *data);
-
-struct snd_kcontrol_new *tfa_build_profile_controls(struct tfa98xx *tfa98xx, int* kcontrol_count);
+int tfaContWriteFilesVstep(struct tfa98xx *tfa98xx, int profile, int vstep);
 
 #endif

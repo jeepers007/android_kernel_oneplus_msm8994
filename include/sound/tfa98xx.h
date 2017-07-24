@@ -42,7 +42,7 @@ struct tfaprofile {
 
 struct tfa98xx_firmware {
 	void			*base;
-	struct nxpTfaDevice 	*dev;
+	struct nxpTfaDevice	*dev;
 	char			*name;
 };
 
@@ -55,48 +55,25 @@ struct tfa98xx {
 	struct delayed_work delay_work;
 	struct mutex dsp_init_lock;
 	int dsp_init;
-	int speaker_imp;
 	int sysclk;
-	int rst_gpio;
-	int mode;
-	int mode_switched;
-	int curr_mode;
-	int vol_idx;
-	int curr_vol_idx;
-	int ic_version;
 	u8 rev;
 	u8 subrev;
-	int vstep;
-	int profile;
+	int vstep_ctl;
+	int vstep_current;
+	int profile_ctl;
 	int profile_current;
 	int profile_count;
 	int has_drc;
 	int rate;
+	int rst_gpio;
 	struct work_struct stop_work;
-#ifdef VENDOR_EDIT
-/* zhiguang.su@MultiMedia.AudioDrv on 2015-07-11,change for wave profile */
-    int WaveEnable;
-    int profileChange;
-    int i2sOn;
-#endif
+    int stop_ref;
 	struct tfaprofile *profiles;
 	struct tfa98xx_firmware fw;
-
-	int (*info_profile)(struct snd_kcontrol *kcontrol,
-			    struct snd_ctl_elem_info *uinfo);
-	int (*set_profile)(struct snd_kcontrol *kcontrol,
-			   struct snd_ctl_elem_value *ucontrol);
-	int (*get_profile)(struct snd_kcontrol *kcontrol,
-			   struct snd_ctl_elem_value *ucontrol);
-
-	int (*info_vstep)(struct snd_kcontrol *kcontrol,
-			  struct snd_ctl_elem_info *uinfo);
-	int (*set_vstep)(struct snd_kcontrol *kcontrol,
-			 struct snd_ctl_elem_value *ucontrol);
-	int (*get_vstep)(struct snd_kcontrol *kcontrol,
-			 struct snd_ctl_elem_value *ucontrol);
-
-	struct snd_kcontrol_new *(*build_profile_controls)(struct tfa98xx *tfa98xx, int *kcontrol_count);
+	u8 reg;
+#ifdef CONFIG_SND_SOC_TFA98XX_DEBUG
+	int dsp_msg_retries;
+#endif
 };
 
 #endif

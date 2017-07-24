@@ -45,7 +45,7 @@ enum Tfa98xx_AgcGainInsert {
 int tfa98xx_dsp_start(struct tfa98xx *tfa98xx, int profile, int vstep);
 int tfa98xx_dsp_quickstart(struct tfa98xx *tfa98xx, int profile, int vstep);
 int tfa98xx_dsp_stop(struct tfa98xx *tfa98xx);
-int tfaRunWriteBitfield(struct tfa98xx *tfa98xx,  struct nxpTfaBitfield bf);
+int tfaRunWriteBitfield(struct tfa98xx *tfa98xx, struct nxpTfaBitfield bf);
 int tfaRunWriteRegister(struct tfa98xx *tfa98xx, struct nxpTfaRegpatch *reg);
 
 int tfa98xx_dsp_patch(struct tfa98xx *tfa98xx, int patchLength, const unsigned char *patchBytes);
@@ -55,7 +55,7 @@ int tfa98xx_dsp_set_param(struct tfa98xx *tfa98xx,
 		    const unsigned char data[]);
 int tfa98xx_dsp_biquad_disable(struct tfa98xx *tfa98xx, int biquad_index);
 int tfa98xx_dsp_biquad_set_coeff(struct tfa98xx *tfa98xx, int biquad_index,
-				 int len, u8* data);
+				 int len, u8 *data);
 int tfa98xx_dsp_write_preset(struct tfa98xx *tfa98xx, int length,
 		       const unsigned char *pPresetBytes);
 int tfa98xx_dsp_power_up(struct tfa98xx *tfa98xx);
@@ -72,10 +72,13 @@ int tfa98xx_set_volume(struct tfa98xx *tfa98xx, u32 voldB);
 int tfa98xx_mute(struct tfa98xx *tfa98xx);
 int tfa98xx_unmute(struct tfa98xx *tfa98xx);
 int tfa98xx_is_pwdn(struct tfa98xx *tfa98xx);
-int tfa98xx_is_calibrated(struct tfa98xx *tfa98xx);
 int tfa98xx_is_amp_running(struct tfa98xx *tfa98xx);
-
+int tfa98xx_select_mode(struct tfa98xx *tfa98xx, enum Tfa98xx_Mode mode);
+int tfa98xx_write_dsp_mem(struct tfa98xx *tfa98xx, struct nxpTfaDspMem *cfmem);
+int tfa98xx_write_filter(struct tfa98xx *tfa98xx, struct nxpTfaBiquadSettings *bq);
+int tfa98xx_powerdown(struct tfa98xx *tfa98xx, int powerdown);
 int tfa98xx_dsp_get_calibration_impedance(struct tfa98xx *tfa98xx, u32 *re25);
 int tfaRunColdStartup(struct tfa98xx *tfa98xx);
 int tfa98xx_restore_mtp(struct tfa98xx *tfa98xx);
+
 #endif

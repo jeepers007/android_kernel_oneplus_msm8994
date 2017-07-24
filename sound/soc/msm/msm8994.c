@@ -3731,7 +3731,7 @@ static struct snd_soc_dai_link msm8994_common_dai_links[] = {
 		.cpu_dai_name = "msm-dai-q6-mi2s.0",
 		.platform_name = "msm-pcm-routing",
 		.codec_name = "tfa98xx.5-0036",
-		.codec_dai_name = "tfa98xx_codec",
+		.codec_dai_name = "tfa98xx_codec-5-36",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_PRI_MI2S_RX,
 		.be_hw_params_fixup = msm_rx_be_hw_params_fixup,
@@ -3744,7 +3744,7 @@ static struct snd_soc_dai_link msm8994_common_dai_links[] = {
 		.cpu_dai_name = "msm-dai-q6-mi2s.3",
 		.platform_name = "msm-pcm-routing",
 		.codec_name = "tfa98xx.5-0036",
-		.codec_dai_name = "tfa98xx_codec",
+		.codec_dai_name = "tfa98xx_codec-5-36",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
 		.be_hw_params_fixup = msm_be_quat_mi2s_hw_params_fixup,
@@ -3855,7 +3855,7 @@ static int msm8994_populate_dai_link_component_of_node(
 			}
 		}
 
-		if(!strcmp(dai_link[i].codec_name, "tfa98xx.3-0036"))
+		if(!strcmp(dai_link[i].codec_name, "tfa98xx.5-0036"))
         {
             pr_err("%s codec_name=%s\n",__func__,dai_link[i].codec_name);
             if (dai_link[i].codec_name && !dai_link[i].codec_of_node)
