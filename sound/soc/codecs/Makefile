@@ -276,6 +276,6 @@ obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
 
 #tfa9890
-snd-soc-tfa9890-objs := tfa9890/tfa98xx.o tfa9890/tfa_dsp.o tfa9890/tfa_container.o
-obj-y += snd-soc-tfa9890.o
+snd-soc-tfa98xx-objs := tfa9890/tfa98xx.o tfa9890/tfa_dsp.o tfa9890/tfa_container.o
+obj-$(CONFIG_SND_SOC_TFA98XX) += snd-soc-tfa98xx.o
 
