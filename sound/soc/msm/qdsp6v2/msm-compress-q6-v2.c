@@ -806,7 +806,6 @@ static int msm_compr_configure_dsp(struct snd_compr_stream *cstream)
 
 	if (prtd->codec_param.codec.bit_rate == 24) {
         	bits_per_sample = 24;
-        	gis_24bits = 1;
 	}
 
 	if (prtd->compr_passthr != LEGACY_PCM) {
