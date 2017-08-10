@@ -259,7 +259,6 @@ struct msm_slim_ctrl {
 	struct mutex		tx_lock;
 	struct mutex		ssr_lock;
 	struct mutex		tx_buf_lock;
-	struct mutex		ssr_lock;
 	u8			pgdla;
 	enum msm_slim_msgq	use_rx_msgqs;
 	enum msm_slim_msgq	use_tx_msgqs;
