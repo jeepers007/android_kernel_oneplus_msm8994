@@ -35,7 +35,7 @@
 #include <sound/audio_cal_utils.h>
 #include <sound/audio_effects.h>
 #include <sound/hwdep.h>
-#include <sound/sounddebug.h>
+
 #include "msm-pcm-routing-v2.h"
 #include "msm-pcm-routing-devdep.h"
 #include "msm-qti-pp-config.h"
@@ -97,10 +97,7 @@ static int msm_route_afe_qua_mi2s_vol_control= 0x2000;
 
 static const DECLARE_TLV_DB_LINEAR(afe_mi2s_vol_gain, 0,
                         INT_RX_VOL_MAX_STEPS);
-
-static int  dirac_port_id = -1;
-static int  dirac_copp_id = -1;
-
+				    
 struct msm_pcm_route_bdai_pp_params {
 	u16 port_id; /* AFE port ID */
 	unsigned long pp_params_config;
@@ -165,7 +162,6 @@ static void msm_pcm_routing_cfg_pp(int port_id, int copp_idx, int topology,
 					__func__, topology, port_id, rc);
 		}
 		break;
-
 	default:
 		/* custom topology specific feature param handlers */
 		break;
@@ -342,7 +338,6 @@ static unsigned long session_copp_map[MSM_FRONTEND_DAI_MM_SIZE][2]
 static struct msm_pcm_routing_app_type_data app_type_cfg[MAX_APP_TYPES];
 static struct msm_pcm_stream_app_type_cfg
 			 fe_dai_app_type_cfg[MSM_FRONTEND_DAI_MM_SIZE];
-
 
 static int msm_routing_get_afe_pri_mi2s_vol_mixer(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
@@ -769,7 +764,6 @@ int msm_pcm_routing_reg_phy_stream(int fedai_id, int perf_mode,
 	struct route_payload payload;
 	u32 channels, sample_rate;
 	uint16_t bits_per_sample = 16;
-    pr_debug("%s\n", __func__);
 
 	if (fedai_id > MSM_FRONTEND_DAI_MM_MAX_ID) {
 		/* bad ID assigned in machine driver */
@@ -1656,7 +1650,6 @@ static int msm_routing_ec_ref_rx_put(struct snd_kcontrol *kcontrol,
 		msm_route_ec_ref_rx = 12;
 		ec_ref_port_id = AFE_PORT_ID_QUATERNARY_MI2S_RX;
 		break;
-
 	default:
 		msm_route_ec_ref_rx = 0; /* NONE */
 		pr_err("%s EC ref rx %ld not valid\n",
@@ -3736,7 +3729,7 @@ static const struct snd_kcontrol_new quat_mi2s_rx_port_mixer_controls[] = {
 	msm_routing_put_port_mixer),
 	SOC_SINGLE_EXT("QUAT_MI2S_TX", MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
 	MSM_BACKEND_DAI_QUATERNARY_MI2S_TX, 1, 0, msm_routing_get_port_mixer,
-	msm_routing_put_port_mixer),	
+	msm_routing_put_port_mixer),
 };
 
 static const struct snd_kcontrol_new tert_mi2s_rx_port_mixer_controls[] = {
@@ -3752,8 +3745,7 @@ static const struct snd_kcontrol_new tert_mi2s_rx_port_mixer_controls[] = {
 	SOC_SINGLE_EXT("QUAT_MI2S_TX", MSM_BACKEND_DAI_TERTIARY_MI2S_RX,
 	MSM_BACKEND_DAI_QUATERNARY_MI2S_TX, 1, 0, msm_routing_get_port_mixer,
 	msm_routing_put_port_mixer),
-};
-
+};															
 static const struct snd_kcontrol_new mmul3_mixer_controls[] = {
 	SOC_SINGLE_EXT("SLIM_0_TX", MSM_BACKEND_DAI_SLIMBUS_0_TX,
 	MSM_FRONTEND_DAI_MULTIMEDIA3, 1, 0, msm_routing_get_audio_mixer,
@@ -4060,97 +4052,6 @@ static const struct snd_kcontrol_new use_ds1_or_ds2_controls[] = {
 	msm_routing_put_use_ds1_or_ds2_control),
 };
 
-static int msm_routing_get_dirac_enable_param_control(struct snd_kcontrol *kcontrol,
-				struct snd_ctl_elem_value *ucontrol) {
-	/* not used */
-	return 0;
-}
-
-#define AUDIO_DIRAC_MODULEID  0x00012D00
-#define DIRAC_PARAM_HD_ENABLE  0x00012D03
-#define DIRAC_PARAM_HEADSET  0x00012D04
-
-static int msm_routing_put_dirac_enable_param_control(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol) {
-	int ret = 0;
-	int enable = ucontrol->value.integer.value[0];
-	pr_debug("%s: enable = %d , dirac_port_id = %d, dirac_copp_id = %d\n", __func__,enable,dirac_port_id,dirac_copp_id);
-	if ((enable < 0) || (enable > 1)) {
-		pr_err(" %s Invalid arguments", __func__);
-		ret = -EINVAL;
-		goto done;
-	}
-
-	mutex_lock(&routing_lock);
-    if(dirac_port_id == -1){
-       dirac_port_id = SLIMBUS_0_RX;
-    }
-	if(dirac_copp_id == -1){
-       dirac_copp_id = 0;
-    }
-	ret = adm_set_dirac_enable_params(dirac_port_id, AUDIO_DIRAC_MODULEID,
-                dirac_copp_id,
-				DIRAC_PARAM_HD_ENABLE,
-				enable);
-	mutex_unlock(&routing_lock);
-
-	if (ret != 0) {
-		pr_err("%s: set parameters failed\n", __func__);
-		return -EINVAL;
-	}
-
-done:
-	return ret;
-}
-
-static int msm_routing_get_dirac_headset_param_control(struct snd_kcontrol *kcontrol,
-				struct snd_ctl_elem_value *ucontrol) {
-	/* not used */
-	return 0;
-}
-
-static int msm_routing_put_dirac_headset_param_control(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol) {
-	int ret = 0;
-	int Selectenable = ucontrol->value.integer.value[0];
-	pr_debug("%s: Selectenable = %d , dirac_port_id = %d, dirac_copp_id = %d\n", __func__,Selectenable,dirac_port_id,dirac_copp_id);
-	if ((Selectenable < 0) || (Selectenable > 5)) {
-		pr_err(" %s Invalid arguments", __func__);
-		ret = -EINVAL;
-		goto done;
-	}
-
-	mutex_lock(&routing_lock);
-	if(dirac_port_id == -1){
-       dirac_port_id = SLIMBUS_0_RX;
-    }
-	if(dirac_copp_id == -1){
-       dirac_copp_id = 0;
-    }
-	ret = adm_set_dirac_enable_params(dirac_port_id, AUDIO_DIRAC_MODULEID,
-                dirac_copp_id,
-				DIRAC_PARAM_HEADSET,
-				Selectenable);
-	mutex_unlock(&routing_lock);
-	if (ret != 0) {
-		pr_err("%s: set parameters failed\n", __func__);
-		return -EINVAL;
-	}
-
-done:
-	return ret;
-}
-
-
-static const struct snd_kcontrol_new set_dirac_enable_param_to_set_controls[] = {
-    SOC_SINGLE_EXT("SetDirac Enable", SND_SOC_NOPM ,
-	               0, 1, 0, msm_routing_get_dirac_enable_param_control,
-	               msm_routing_put_dirac_enable_param_control),
-	SOC_SINGLE_EXT("Select Dirac Headset", SND_SOC_NOPM ,
-	               0, 4, 0, msm_routing_get_dirac_headset_param_control,
-	               msm_routing_put_dirac_headset_param_control),	
-};
-
 int msm_routing_get_rms_value_control(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol) {
 	int rc = 0;
@@ -4431,8 +4332,8 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("DTMF_DL_HL", "DTMF_RX_HOSTLESS Playback",
 		0, 0, 0, 0),
-
-	SND_SOC_DAPM_AIF_OUT("QUAT_MI2S_UL_HL", "QUAT_MI2S_TX_HOSTLESS Capture",
+	SND_SOC_DAPM_AIF_OUT("QUAT_MI2S_UL_HL",
+		"QUAT_MI2S_TX_HOSTLESS Capture",
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("TERT_MI2S_UL_HL", "TERT_MI2S_HOSTLESS Capture",
 		0, 0, 0, 0),
@@ -4760,7 +4661,6 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 	SND_SOC_DAPM_MIXER("TERT_MI2S_RX Port Mixer", SND_SOC_NOPM, 0, 0,
 	tert_mi2s_rx_port_mixer_controls,
 	ARRAY_SIZE(tert_mi2s_rx_port_mixer_controls)),
-
 	SND_SOC_DAPM_MIXER("QCHAT_Tx Mixer",
 	SND_SOC_NOPM, 0, 0, tx_qchat_mixer_controls,
 	ARRAY_SIZE(tx_qchat_mixer_controls)),
@@ -4802,7 +4702,6 @@ static const struct snd_kcontrol_new afe_qua_mi2s_vol_mixer_controls[] = {
 	INT_RX_VOL_GAIN, 0, msm_routing_get_afe_qua_mi2s_vol_mixer,
 	msm_routing_set_afe_qua_mi2s_vol_mixer, afe_mi2s_vol_gain),
 };
-
 static const struct snd_soc_dapm_route intercon[] = {
 	{"PRI_RX Audio Mixer", "MultiMedia1", "MM_DL1"},
 	{"PRI_RX Audio Mixer", "MultiMedia2", "MM_DL2"},
@@ -5393,7 +5292,6 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"Voip_Tx Mixer", "MI2S_TX_Voip", "MI2S_TX"},
 	{"Voip_Tx Mixer", "TERT_MI2S_TX_Voip", "TERT_MI2S_TX"},
 	{"Voip_Tx Mixer", "QUAT_MI2S_TX_Voip", "QUAT_MI2S_TX"},
-	
 	{"Voip_Tx Mixer", "SLIM_0_TX_Voip", "SLIMBUS_0_TX"},
 	{"Voip_Tx Mixer", "INTERNAL_BT_SCO_TX_Voip", "INT_BT_SCO_TX"},
 	{"Voip_Tx Mixer", "AFE_PCM_TX_Voip", "PCM_TX"},
@@ -5507,6 +5405,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"PCM_RX", NULL, "PCM_RX_DL_HL"},
 	{"PRI_MI2S_RX_DL_HL", "Switch", "PRI_MI2S_DL_HL"},
 	{"PRI_MI2S_RX", NULL, "PRI_MI2S_RX_DL_HL"},
+
 	{"QUAT_MI2S_RX_DL_HL", "Switch", "SLIM0_DL_HL"},
 	{"QUAT_MI2S_RX", NULL, "QUAT_MI2S_RX_DL_HL"},
 	{"MI2S_UL_HL", NULL, "TERT_MI2S_TX"},
@@ -5533,7 +5432,6 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"SLIMBUS_0_RX Port Mixer", "TERT_MI2S_RX", "TERT_MI2S_RX"},
 	{"SLIMBUS_0_RX Port Mixer", "QUAT_MI2S_RX", "QUAT_MI2S_RX"},
 	{"SLIMBUS_0_RX", NULL, "SLIMBUS_0_RX Port Mixer"},
-
 	{"AFE_PCM_RX Port Mixer", "INTERNAL_FM_TX", "INT_FM_TX"},
 	{"AFE_PCM_RX Port Mixer", "SLIM_1_TX", "SLIMBUS_1_TX"},
 	{"PCM_RX", NULL, "AFE_PCM_RX Port Mixer"},
@@ -5642,7 +5540,6 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"QUAT_MI2S_RX Port Mixer", "QUAT_MI2S_TX", "QUAT_MI2S_TX"},
 	{"QUAT_MI2S_RX Port Mixer", "SLIM_0_TX", "SLIMBUS_0_TX"},
 	{"QUAT_MI2S_RX", NULL, "QUAT_MI2S_RX Port Mixer"},
-	
 	{"TERT_MI2S_RX Port Mixer", "PRI_MI2S_TX", "PRI_MI2S_TX"},
 	{"TERT_MI2S_RX Port Mixer", "TERT_MI2S_TX", "TERT_MI2S_TX"},
 	{"TERT_MI2S_RX Port Mixer", "QUAT_MI2S_TX", "QUAT_MI2S_TX"},
@@ -5737,7 +5634,6 @@ static int msm_pcm_routing_close(struct snd_pcm_substream *substream)
 	int i, session_type, path_type, topology;
 	struct msm_pcm_routing_bdai_data *bedai;
 	struct msm_pcm_routing_fdai_data *fdai;
-    pr_debug("%s\n", __func__);
 
 	if (be_id >= MSM_BACKEND_DAI_MAX) {
 		pr_err("%s: unexpected be_id %d\n", __func__, be_id);
@@ -5799,7 +5695,6 @@ static int msm_pcm_routing_prepare(struct snd_pcm_substream *substream)
 	bool playback, capture;
 	uint16_t bits_per_sample = 16;
 	struct msm_pcm_routing_fdai_data *fdai;
-    pr_debug("%s\n", __func__);
 
 	if (be_id >= MSM_BACKEND_DAI_MAX) {
 		pr_err("%s: unexpected be_id %d\n", __func__, be_id);
@@ -6137,10 +6032,6 @@ static int msm_routing_probe(struct snd_soc_platform *platform)
 			afe_qua_mi2s_vol_mixer_controls,
 			ARRAY_SIZE(afe_qua_mi2s_vol_mixer_controls));
 
-	snd_soc_add_platform_controls(platform,
-				set_dirac_enable_param_to_set_controls,
-			ARRAY_SIZE(set_dirac_enable_param_to_set_controls));
-
 	for (i = 0; i < ARRAY_SIZE(msm_snd_controls); i++) {
 		kctl = snd_ctl_new1(&msm_snd_controls[i], &channel_mux);
 		if (kctl == NULL)
@@ -6294,3 +6185,4 @@ module_exit(msm_soc_routing_platform_exit);
 
 MODULE_DESCRIPTION("MSM routing platform driver");
 MODULE_LICENSE("GPL v2");
+
