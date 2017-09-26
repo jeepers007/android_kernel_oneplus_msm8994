@@ -172,6 +172,18 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 					settings[i].reg_data,
 					settings[i].data_type);
 				break;
+			case MSM_CAMERA_I2C_NO_DATA:
+			 o_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				settings[i].reg_data = (settings[i].reg_addr & 0xFF);
+				settings[i].reg_addr = (settings[i].reg_addr >> 8);
+				settings[i].data_type = MSM_CAMERA_I2C_BYTE_DATA;
+				rc = o_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+					&o_ctrl->i2c_client,
+					settings[i].reg_addr,
+					settings[i].reg_data,
+					settings[i].data_type);
+				o_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_WORD_ADDR;
+				break;
 			case MSM_CAMERA_I2C_DWORD_DATA:
 			reg_setting =
 			kzalloc(sizeof(struct msm_camera_i2c_seq_reg_array),
