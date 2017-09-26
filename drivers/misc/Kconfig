@@ -591,6 +591,17 @@ config PTN5150_TYPE_C
 	  This adds support for detecting USB Type-C chargers that
 	  can supply upto 3A Vbus current for charging.
 
+config TI_DRV2605
+	tristate "TI's DRV2605 haptic controller support"
+	depends on I2C
+	help
+	  The DRV2605 is a piezo haptic controller chip. It can drive
+	  piezo haptics either in digital mode or analog mode. This chip
+	  can be used in variety of devices to provide haptic support.
+	  
+	  To compile this driver as a module, choose M here: the
+	  module will be called ti_drv2605.
+
 config TI_DRV2667
 	tristate "TI's DRV2667 haptic controller support"
 	depends on I2C
