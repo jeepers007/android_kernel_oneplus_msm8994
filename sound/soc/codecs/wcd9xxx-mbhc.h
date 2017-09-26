@@ -15,6 +15,8 @@
 #include "wcd9xxx-resmgr.h"
 #include "wcdcal-hwdep.h"
 
+#include<linux/switch.h>
+
 #define WCD9XXX_CFILT_FAST_MODE 0x00
 #define WCD9XXX_CFILT_SLOW_MODE 0x40
 #define WCD9XXX_CFILT_EXT_PRCHG_EN 0x30
@@ -262,6 +264,7 @@ struct wcd9xxx_mbhc_config {
 	unsigned int mclk_rate;
 	unsigned int gpio;
 	unsigned int gpio_irq;
+	int headset_type;
 	int gpio_level_insert;
 	bool insert_detect; /* codec has own MBHC_INSERT_DETECT */
 	bool detect_extn_cable;
@@ -404,6 +407,8 @@ struct wcd9xxx_mbhc {
 
 	/* Indicates status of current source switch */
 	bool is_cs_enabled;
+
+	struct switch_dev wcd9xxx_sdev;
 
 	/* Holds type of Headset - Mono/Stereo */
 	enum mbhc_hph_type hph_type;

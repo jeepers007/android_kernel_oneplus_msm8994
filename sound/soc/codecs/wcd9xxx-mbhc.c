@@ -895,6 +895,7 @@ static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 		mbhc->hph_type = MBHC_HPH_NONE;
 		pr_debug("%s: Reporting removal %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
+		switch_set_state(&mbhc->wcd9xxx_sdev,0);
 		wcd9xxx_jack_report(mbhc, &mbhc->headset_jack, mbhc->hph_status,
 				    WCD9XXX_JACK_MASK);
 		wcd9xxx_set_and_turnoff_hph_padac(mbhc);
@@ -977,6 +978,29 @@ static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 
 		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
+			 
+		switch(mbhc->current_plug){
+               case PLUG_TYPE_HEADPHONE:
+		       case PLUG_TYPE_HIGH_HPH:
+                    mbhc->mbhc_cfg->headset_type = 0;
+			        switch_set_state(&mbhc->wcd9xxx_sdev,2);
+			        break;
+	           case PLUG_TYPE_GND_MIC_SWAP:
+			        mbhc->mbhc_cfg->headset_type = 0;
+			        switch_set_state(&mbhc->wcd9xxx_sdev,1);
+			        break;
+		      	case PLUG_TYPE_HEADSET:
+		            mbhc->mbhc_cfg->headset_type = 1;
+		 	        switch_set_state(&mbhc->wcd9xxx_sdev,1);
+			        break;
+		        	default:
+                    mbhc->mbhc_cfg->headset_type = 0;
+			        switch_set_state(&mbhc->wcd9xxx_sdev,0);
+			    	break;
+		      }
+              printk("%s: Reporting insertion %d(%x)\n", __func__,
+				jack_type, mbhc->hph_status);
+
 		wcd9xxx_jack_report(mbhc, &mbhc->headset_jack,
 				    (mbhc->hph_status | SND_JACK_MECHANICAL),
 				    WCD9XXX_JACK_MASK);

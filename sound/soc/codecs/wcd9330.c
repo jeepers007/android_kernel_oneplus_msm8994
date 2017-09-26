@@ -91,6 +91,8 @@ MODULE_PARM_DESC(cpe_debug_mode, "boot cpe in debug mode");
 
 static atomic_t kp_tomtom_priv;
 
+static int high_perf_mode = 1;
+
 static int high_perf_mode;
 module_param(high_perf_mode, int,
 			S_IRUGO | S_IWUSR | S_IWGRP);
@@ -590,6 +592,8 @@ struct tomtom_priv {
 
 	/* to track the status */
 	unsigned long status_mask;
+	
+	struct tomtom_priv *priv_headset_type;
 
 	int ext_clk_users;
 	struct clk *wcd_ext_clk;
@@ -680,6 +684,31 @@ static unsigned short tx_digital_gain_reg[] = {
 	TOMTOM_A_CDC_TX9_VOL_CTL_GAIN,
 	TOMTOM_A_CDC_TX10_VOL_CTL_GAIN,
 };
+
+enum 
+{
+	NO_DEVICE	= 0,
+	HS_WITH_MIC	= 1,
+	HS_WITHOUT_MIC = 2,
+};
+static ssize_t wcd9xxx_print_name(struct switch_dev *sdev, char *buf)
+{
+	switch (switch_get_state(sdev)) 
+	{
+		case NO_DEVICE:
+			return sprintf(buf, "No Device\n");
+		case HS_WITH_MIC:
+            if(priv_headset_type->mbhc.mbhc_cfg->headset_type == 1) {
+		        return sprintf(buf, "American Headset\n");
+            } else {
+                return sprintf(buf, "Headset\n");
+            }
+           
+		case HS_WITHOUT_MIC:
+			return sprintf(buf, "Handset\n");
+	}
+	return -EINVAL;
+}
 
 int tomtom_enable_qfuse_sensing(struct snd_soc_codec *codec)
 {
@@ -3535,6 +3564,10 @@ static int tomtom_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 			 *  If not internal, make sure to write the
 			 *  register to default value
 			 */
+          if((strnstr(w->name, "MIC BIAS1", sizeof("MIC BIAS1")))
+                ||(strnstr(w->name, "MIC BIAS3", sizeof("MIC BIAS3"))))
+                snd_soc_write(codec, micb_int_reg, 0x00);
+		else
 			snd_soc_write(codec, micb_int_reg, 0x24);
 		if (tomtom->mbhc_started && micb_ctl_reg ==
 		    TOMTOM_A_MICB_2_CTL) {
@@ -8696,6 +8729,14 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 		goto err_hwdep;
 	}
 
+	tomtom->mbhc.wcd9xxx_sdev.name= "h2w";
+	tomtom->mbhc.wcd9xxx_sdev.print_name = wcd9xxx_print_name;
+	ret = switch_dev_register(&tomtom->mbhc.wcd9xxx_sdev);
+	if (ret)
+	{
+		goto err_switch_dev_register;
+	}
+
 	tomtom->codec = codec;
 	for (i = 0; i < COMPANDER_MAX; i++) {
 		tomtom->comp_enabled[i] = 0;
@@ -8801,6 +8842,7 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 		/* Do not fail probe if CPE failed */
 		ret = 0;
 	}
+	priv_headset_type = tomtom;
 	return ret;
 
 err_pdata:
@@ -8808,6 +8850,8 @@ err_pdata:
 err_hwdep:
 	kfree(tomtom->fw_data);
 err_nomem_slimch:
+	switch_dev_unregister(&tomtom->mbhc.wcd9xxx_sdev);
+	err_switch_dev_register:
 	devm_kfree(codec->dev, tomtom);
 	return ret;
 }

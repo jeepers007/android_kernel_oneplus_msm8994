@@ -820,7 +820,7 @@ static struct snd_soc_dai_driver msm_fe_dais[] = {
 			.rate_max = 48000,
 		},
 		.ops = &msm_fe_dai_ops,
-		.name = "QUAT_MI2S_TX_HOSTLESS",
+		.name = "QUAT_MI2S_HOSTLESS",
 		.probe = fe_dai_probe,
 	},
 	{
