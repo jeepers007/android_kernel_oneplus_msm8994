@@ -7,6 +7,7 @@
 #include <linux/types.h>
 
 void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
+static inline void __init dma_contiguous_early_removal_fixup(void) { }
 
 #endif
 #endif
