@@ -31,7 +31,7 @@
 #include <linux/miscdevice.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
-#include <asm/uaccess.h>
+#include <asm-generic/uaccess.h>
 #include <linux/time.h>
 #include <linux/platform_device.h>
 /*
