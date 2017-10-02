@@ -49,6 +49,13 @@
  * on our cache or tlb entries.
  */
 
+struct exception_table_entry
+{
+	unsigned long insn, fixup;
+};
+
+extern int fixup_exception(struct pt_regs *regs);
+
 #define KERNEL_DS	(-1UL)
 #define get_ds()	(KERNEL_DS)
 

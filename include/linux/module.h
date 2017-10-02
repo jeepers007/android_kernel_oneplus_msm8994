@@ -66,22 +66,6 @@ extern ssize_t __modver_version_show(struct module_attribute *,
 
 extern struct module_attribute module_uevent;
 
-/* These are either module local, or the kernel's dummy ones. */
-extern int init_module(void);
-extern void cleanup_module(void);
-
-/* Archs provide a method of finding the correct exception table. */
-struct exception_table_entry;
-
-const struct exception_table_entry *
-search_extable(const struct exception_table_entry *first,
-              const struct exception_table_entry *last,
-              unsigned long value);
-void sort_extable(struct exception_table_entry *start,
-                 struct exception_table_entry *finish);
-void sort_main_extable(void);
-void trim_init_extable(struct module *m);
-
 /* Generic info of form tag = "info" */
 #define MODULE_INFO(tag, info) __MODULE_INFO(tag, tag, info)
 
