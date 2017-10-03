@@ -1,8 +1,8 @@
 /*
- * $Date: 2015-01-08 14:30:24 +0100 (Thu, 08 Jan 2015) $
+ * $Date: 2015-01-08 05:30:24 -0800 (Thu, 08 Jan 2015) $
  * $Revision: 2039 $
  */
-
+ 
 /**
  * @file vl6180x_i2c.h
  *
@@ -13,6 +13,7 @@
 #define VL6180_I2C_H_
 
 #include "vl6180x_platform.h"
+#include "../stmvl6180.h"
 
 /**
  * @defgroup cci_i2c  CCI to RAW I2C translation layer
@@ -28,7 +29,7 @@
  * If your configured i2c for per device buffer via  @a #I2C_BUFFER_CONFIG == 2, you must implement @a VL6180x_GetI2cBuffer()
  *
  * __I2C Port sample__ \n
- * A __linux kernel__ port need a "long flags" var for its spin_lock in all functions. the following code example declares a spin lock "lock" in the custom device structure.\n
+ * A __linux kernel__ port need a "long flags" var for its spin_lock in all functions. the following code example declares a spin lock "lock" in the custom device structure. \n
  * @code
 struct MyVL6180Dev_t {
      struct VL6180xDevData_t StData;
@@ -56,8 +57,8 @@ typedef struct MyVL6180Dev_t *VL6180xDev_t;
 #define VL6180x_DoneI2CAcces(dev)   pthread_mutex_unlock(dev->lock)
  * @endcode
  */
-void i2c_setclient(void *client);
-void *i2c_getclient(void);
+
+struct i2c_client* i2c_getclient(void);
 
 /**
  * @def I2C_BUFFER_CONFIG
