@@ -7,41 +7,30 @@
 
 #include "vl6180x_i2c.h"
 #include <linux/i2c.h>
-#include <asm/uaccess.h>
 #include <linux/module.h>
-#include <linux/init.h>
-#include <linux/slab.h>	
-#include <linux/i2c.h>
-#include <linux/mutex.h>
-#include <linux/delay.h>
-#include <linux/interrupt.h>
-#include <linux/irq.h>
-#include <linux/gpio.h>
-#include <linux/input.h>
-#include <linux/miscdevice.h>
-#include "../stmvl6180.h"
-
-#include <linux/kernel.h>
-#include <linux/regulator/consumer.h>
-#include <linux/of_gpio.h>
-#include <linux/rtc.h>
-#include <linux/syscalls.h>
-#include <linux/fb.h>
-#include <linux/proc_fs.h>
-#include <asm/uaccess.h>
-#include "msm_cci.h"
+#include "stmvl6180-i2c.h"
+#include "stmvl6180-cci.h"
 
 #define I2C_M_WR			0x00
-static struct i2c_client *pclient=NULL;
+#ifdef CAMERA_CCI
+static struct msm_camera_i2c_client *pclient;
+#else
+static struct i2c_client *pclient;
+#endif
 
-void i2c_setclient(struct i2c_client *client)
+void i2c_setclient(void *client)
 {
-	pclient = client;
+#ifdef CAMERA_CCI
+	pclient = (struct msm_camera_i2c_client *)client;
+#else
+	pclient = (struct i2c_client *)client;
+#endif
 
 }
-struct i2c_client* i2c_getclient()
+
+void *i2c_getclient(void)
 {
-	return pclient;
+	return (void *)pclient;
 }
 
 /** int  VL6180x_I2CWrite(VL6180xDev_t dev, void *buff, uint8_t len);
@@ -53,22 +42,56 @@ struct i2c_client* i2c_getclient()
  */
 int VL6180x_I2CWrite(VL6180xDev_t dev, uint8_t *buff, uint8_t len)
 {
+
+
+	int err = 0;
+#ifdef CAMERA_CCI
+	uint16_t index;
+
+	index = ((uint16_t)buff[0] << 8) | (uint16_t)buff[1];
+	/*pr_err("%s: index: %d len: %d\n", __func__, index, len); */
+
+	if (len == 3) {
+		uint8_t data;
+		data = buff[2];
+		/* for byte access */
+		err = pclient->i2c_func_tbl->i2c_write(pclient, index, data, MSM_CAMERA_I2C_BYTE_DATA);
+		if (err < 0) {
+			pr_err("%s:%d failed status=%d\n", __func__, __LINE__, err);
+			return err;
+		}
+	} else if (len == 4) {
+		uint16_t data;
+		data = ((uint16_t)buff[2] << 8) | (uint16_t)buff[3];
+		err = pclient->i2c_func_tbl->i2c_write(pclient, index, data, MSM_CAMERA_I2C_WORD_DATA);
+		if (err < 0) {
+			pr_err("%s:%d failed status=%d\n", __func__, __LINE__, err);
+			return err;
+		}
+	} else if (len == 6) {
+		err = pclient->i2c_func_tbl->i2c_write_seq(pclient, index, &buff[2], 4);
+		if (err < 0) {
+			pr_err("%s:%d failed status=%d\n", __func__, __LINE__, err);
+			return err;
+		}
+
+	}
+	#else
 	struct i2c_msg msg[1];
-	int err=0;
 
 	msg[0].addr = pclient->addr;
 	msg[0].flags = I2C_M_WR;
-	msg[0].buf= buff;
-	msg[0].len=len;
+	msg[0].buf = buff;
+	msg[0].len = len;
 
-	err = i2c_transfer(pclient->adapter,msg,1); //return the actual messages transfer
-	if(err != 1)
-	{
-		pr_err("%s: i2c_transfer err:%d, addr:0x%x, reg:0x%x\n", __func__, err, pclient->addr, 
-																				(buff[0]<<8|buff[1]));
+	err = i2c_transfer(pclient->adapter, msg, 1); /* return the actual messages transfer */
+	if (err != 1) {
+		pr_err("%s: i2c_transfer err:%d, addr:0x%x, reg:0x%x\n", __func__, err, pclient->addr, (buff[0] << 8 | buff[1]));
 		return -1;
 	}
-    return 0;
+	#endif
+
+	return 0;
 }
 
 
@@ -81,19 +104,31 @@ int VL6180x_I2CWrite(VL6180xDev_t dev, uint8_t *buff, uint8_t len)
  */
 int VL6180x_I2CRead(VL6180xDev_t dev, uint8_t *buff, uint8_t len)
 {
- 	struct i2c_msg msg[1];
-	int err=0;
+
+	int err = 0;
+#ifdef CAMERA_CCI
+	uint16_t index;
+	index = ((uint16_t)buff[0] << 8) | (uint16_t)buff[1];
+	/* pr_err("%s: index: %d\n", __func__, index); */
+	err = pclient->i2c_func_tbl->i2c_read_seq(pclient, index, buff, len);
+	if (err < 0) {
+		pr_err("%s:%d failed status=%d\n", __func__, __LINE__, err);
+		return err;
+	}
+#else
+	struct i2c_msg msg[1];
 
 	msg[0].addr = pclient->addr;
 	msg[0].flags = I2C_M_RD|pclient->flags;
-	msg[0].buf= buff;
-	msg[0].len=len;
+	msg[0].buf = buff;
+	msg[0].len = len;
 
-	err = i2c_transfer(pclient->adapter,&msg[0],1); //return the actual mesage transfer
-	if(err != 1)
-	{
+	err = i2c_transfer(pclient->adapter, &msg[0], 1); /* return the actual mesage transfer */
+	if (err != 1) {
 		pr_err("%s: Read i2c_transfer err:%d, addr:0x%x\n", __func__, err, pclient->addr);
 		return -1;
 	}
-    return 0;
+#endif
+
+	return 0;
 }
