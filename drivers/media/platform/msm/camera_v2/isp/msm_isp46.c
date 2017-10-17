@@ -554,27 +554,9 @@ static void msm_vfe46_reg_update(struct vfe_device *vfe_dev,
 	ISP_DBG("%s update_mask %x\n", __func__, update_mask);
 
 	spin_lock_irqsave(&vfe_dev->reg_update_lock, flags);
-	vfe_dev->axi_data.src_info[VFE_PIX_0].reg_update_frame_id =
-		vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id;
 	vfe_dev->reg_update_requested |= update_mask;
-	vfe_dev->dual_vfe_res->reg_update_mask[vfe_dev->pdev->id] =
-		vfe_dev->reg_update_requested;
-	if ((vfe_dev->is_split && vfe_dev->pdev->id == ISP_VFE1) &&
-		((frame_src == VFE_PIX_0) || (frame_src == VFE_SRC_MAX))) {
-		if (!vfe_dev->dual_vfe_res->vfe_base[ISP_VFE0]) {
-			pr_err("%s vfe_base for ISP_VFE0 is NULL\n", __func__);
-			spin_unlock_irqrestore(&vfe_dev->reg_update_lock, flags);
-			return;
-		}
-		msm_camera_io_w_mb(update_mask,
-			vfe_dev->dual_vfe_res->vfe_base[ISP_VFE0] + 0x3D8);
-		msm_camera_io_w_mb(update_mask,
-			vfe_dev->vfe_base + 0x3D8);
-	} else if (!vfe_dev->is_split ||
-		(frame_src >= VFE_RAW_0 && frame_src <= VFE_SRC_MAX)) {
-		msm_camera_io_w_mb(update_mask,
-			vfe_dev->vfe_base + 0x3D8);
-	}
+	msm_camera_io_w_mb(vfe_dev->reg_update_requested,
+		vfe_dev->vfe_base + 0x3D8);
 	spin_unlock_irqrestore(&vfe_dev->reg_update_lock, flags);
 }
 
